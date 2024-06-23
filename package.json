@@ -1,11 +1,11 @@
 {
-  "name": "plugin-sample-vite-svelte",
-  "version": "0.3.5",
+  "name": "siyuan_online_devices_mgr",
+  "version": "0.0.1",
   "type": "module",
-  "description": "This is a sample plugin based on vite and svelte for Siyuan (https://b3log.org/siyuan)",
-  "repository": "",
-  "homepage": "",
-  "author": "frostime",
+  "description": "Notice you when there's new devices online in SiYuan",
+  "repository": "https://github.com/zxkmm/siyuan_online_devices_mgr",
+  "homepage": "https://github.com/zxkmm/siyuan_online_devices_mgr",
+  "author": "zxkmm",
   "license": "MIT",
   "scripts": {
     "make-link": "node  --no-warnings ./scripts/make_dev_link.js",
