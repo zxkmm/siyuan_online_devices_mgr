@@ -3,13 +3,12 @@
  Author       : frostime
  Date         : 2023-07-01 19:23:50
  FilePath     : /src/libs/setting-panel.svelte
- LastEditTime : 2024-06-08 18:25:34
+ LastEditTime : 2023-11-28 21:45:10
  Description  : 
 -->
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-    import ItemWrap from "./item-wrap.svelte";
-    import InputItem from "./item-input.svelte";
+    import SettingItem from "./setting-item.svelte";
 
     export let group: string;
     export let settingItems: ISettingItem[];
@@ -31,22 +30,17 @@
 <div class="config__tab-container {fn__none}" data-name={group}>
     <slot />
     {#each settingItems as item (item.key)}
-        <ItemWrap
+        <SettingItem
+            type={item.type}
             title={item.title}
             description={item.description}
-            direction={item?.direction}
-        > 
-            <InputItem
-                type={item.type}
-                key={item.key}
-                bind:value={item.value}
-                placeholder={item?.placeholder}
-                options={item?.options}
-                slider={item?.slider}
-                button={item?.button}
-                on:click={onClick}
-                on:changed={onChanged}
-            />
-        </ItemWrap>
+            settingKey={item.key}
+            settingValue={item.value}
+            placeholder={item?.placeholder}
+            options={item?.options}
+            slider={item?.slider}
+            on:click={onClick}
+            on:changed={onChanged}
+        />
     {/each}
 </div>

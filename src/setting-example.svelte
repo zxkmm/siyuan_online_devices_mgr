@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { showMessage } from "siyuan";
     import SettingPanel from "./libs/setting-panel.svelte";
 
     let groups: string[] = ["🌈 Default"];
@@ -20,15 +19,6 @@
             key: 'b',
             value: 'This is a text',
             placeholder: 'placeholder'
-        },
-        {
-            type: 'textarea',
-            title: 'textarea',
-            description: 'This is a textarea',
-            key: 'b2',
-            value: 'This is a textarea',
-            placeholder: 'placeholder',
-            direction: 'row'
         },
         {
             type: 'select',
@@ -53,19 +43,6 @@
                 max: 100,
                 step: 1
             }
-        },
-        {
-            type: 'button',
-            title: 'button',
-            description: 'This is a button',
-            key: 'e',
-            value: 'Click Button',
-            button: {
-                label: 'Click Me',
-                callback: () => {
-                    showMessage('Hello, world!');
-                }
-            }
         }
     ];
 
@@ -79,8 +56,6 @@
     const onChanged = ({ detail }: CustomEvent<ChangeEvent>) => {
         if (detail.group === groups[0]) {
             // setting.set(detail.key, detail.value);
-            //Please add your code here
-            //Udpate the plugins setting data, don't forget to call plugin.save() for data persistence
         }
     };
 </script>
@@ -88,7 +63,6 @@
 <div class="fn__flex-1 fn__flex config__panel">
     <ul class="b3-tab-bar b3-list b3-list--background">
         {#each groups as group}
-            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
             <li
                 data-name="editor"
                 class:b3-list-item--focus={group === focusGroup}
@@ -108,7 +82,6 @@
             settingItems={SettingItems}
             display={focusGroup === groups[0]}
             on:changed={onChanged}
-            on:click={({ detail }) => { console.debug("Click:", detail.key); }}
         >
             <div class="fn__flex b3-label">
                 💡 This is our default settings.
