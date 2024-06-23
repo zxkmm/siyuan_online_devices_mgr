@@ -7,10 +7,12 @@ import { svelte } from "@sveltejs/vite-plugin-svelte"
 import zipPack from "vite-plugin-zip-pack";
 import fg from 'fast-glob';
 
+import vitePluginYamlI18n from './yaml-plugin';
+
 const args = minimist(process.argv.slice(2))
 const isWatch = args.watch || args.w || false
-const devDistDir = "./dev"
-const distDir = isWatch ? devDistDir : "./dist"
+const devDistDir = "dev"
+const distDir = isWatch ? devDistDir : "dist"
 
 console.log("isWatch=>", isWatch)
 console.log("distDir=>", distDir)
@@ -25,6 +27,11 @@ export default defineConfig({
     plugins: [
         svelte(),
 
+        vitePluginYamlI18n({
+            inDir: 'public/i18n',
+            outDir: `${distDir}/i18n`
+        }),
+
         viteStaticCopy({
             targets: [
                 {
@@ -32,7 +39,7 @@ export default defineConfig({
                     dest: "./",
                 },
                 {
-                    src: "./icon.png",
+                    src: "./plugin.json",
                     dest: "./",
                 },
                 {
@@ -40,13 +47,9 @@ export default defineConfig({
                     dest: "./",
                 },
                 {
-                    src: "./plugin.json",
+                    src: "./icon.png",
                     dest: "./",
-                },
-                {
-                    src: "./src/i18n/**",
-                    dest: "./i18n/",
-                },
+                }
             ],
         }),
     ],
@@ -91,7 +94,7 @@ export default defineConfig({
                             name: 'watch-external',
                             async buildStart() {
                                 const files = await fg([
-                                    'src/i18n/*.json',
+                                    'public/i18n/**',
                                     './README*.md',
                                     './plugin.json'
                                 ]);

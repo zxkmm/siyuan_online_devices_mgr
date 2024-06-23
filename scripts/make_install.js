@@ -1,15 +1,12 @@
 import fs from 'fs';
+import path from 'path';
 import http from 'node:http';
 import readline  from 'node:readline';
 
 
 //************************************ Write you dir here ************************************
 
-//Please write the "workspace/data/plugins" directory here
-//请在这里填写你的 "workspace/data/plugins" 目录
-let targetDir = '';
-//Like this
-// let targetDir = `H:\\SiYuanDevSpace\\data\\plugins`;
+let targetDir = ''; // the target directory of the plugin, '*/data/plugin'
 //********************************************************************************************
 
 const log = (info) => console.log(`\x1B[36m%s\x1B[0m`, info);
@@ -89,28 +86,19 @@ async function chooseTarget(workspaces) {
     }
 }
 
-log('>>> Try to visit constant "targetDir" in make_dev_link.js...')
+log('>>> Try to visit constant "targetDir" in make_install.js...')
 
 if (targetDir === '') {
     log('>>> Constant "targetDir" is empty, try to get SiYuan directory automatically....')
     let res = await getSiYuanDir();
     
     if (res === null || res === undefined || res.length === 0) {
-        log('>>> Can not get SiYuan directory automatically, try to visit environment variable "SIYUAN_PLUGIN_DIR"....');
+        error('>>> Can not get SiYuan directory automatically');
 
-        // console.log(process.env)
-        let env = process.env?.SIYUAN_PLUGIN_DIR;
-        if (env !== undefined && env !== null && env !== '') {
-            targetDir = env;
-            log(`\tGot target directory from environment variable "SIYUAN_PLUGIN_DIR": ${targetDir}`);
-        } else {
-            error('\tCan not get SiYuan directory from environment variable "SIYUAN_PLUGIN_DIR", failed!');
-            process.exit(1);
-        }
+        process.exit(1);
     } else {
         targetDir = await chooseTarget(res);
     }
-
 
     log(`>>> Successfully got target directory: ${targetDir}`);
 }
@@ -118,7 +106,7 @@ if (targetDir === '') {
 //Check
 if (!fs.existsSync(targetDir)) {
     error(`Failed! plugin directory not exists: "${targetDir}"`);
-    error(`Please set the plugin directory in scripts/make_dev_link.js`);
+    error(`Please set the plugin directory in scripts/make_install.js`);
     process.exit(1);
 }
 
@@ -141,11 +129,10 @@ if (!name || name === '') {
     process.exit(1);
 }
 
-//dev directory
-const devDir = `${process.cwd()}/dev`;
+const distDir = `${process.cwd()}/dist`;
 //mkdir if not exists
-if (!fs.existsSync(devDir)) {
-    fs.mkdirSync(devDir);
+if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir);
 }
 
 function cmpPath(path1, path2) {
@@ -162,25 +149,43 @@ function cmpPath(path1, path2) {
 }
 
 const targetPath = `${targetDir}/${name}`;
-//如果已经存在，就退出
-if (fs.existsSync(targetPath)) {
-    let isSymbol = fs.lstatSync(targetPath).isSymbolicLink();
 
-    if (isSymbol) {
-        let srcPath = fs.readlinkSync(targetPath);
-        
-        if (cmpPath(srcPath, devDir)) {
-            log(`Good! ${targetPath} is already linked to ${devDir}`);
-        } else {
-            error(`Error! Already exists symbolic link ${targetPath}\nBut it links to ${srcPath}`);
-        }
-    } else {
-        error(`Failed! ${targetPath} already exists and is not a symbolic link`);
+
+function copyDirectory(srcDir, dstDir) {
+    if (!fs.existsSync(dstDir)) {
+        fs.mkdirSync(dstDir);
+        log(`Created directory ${dstDir}`);
     }
+    //将 distDir 下的所有文件复制到 targetPath
+    fs.readdir(srcDir, { withFileTypes: true }, (err, files) => {
+        if (err) {
+            error('Error reading source directory:', err);
+            return;
+        }
 
-} else {
-    //创建软链接
-    fs.symlinkSync(devDir, targetPath, 'junction');
-    log(`Done! Created symlink ${targetPath}`);
+        // 遍历源目录中的所有文件和子目录
+        files.forEach((file) => {
+            const src = path.join(srcDir, file.name);
+            const dst = path.join(dstDir, file.name);
+
+            // 判断当前项是文件还是目录
+            if (file.isDirectory()) {
+                // 如果是目录，则递归调用复制函数复制子目录
+                copyDirectory(src, dst);
+            } else {
+                // 如果是文件，则复制文件到目标目录
+                fs.copyFile(src, dst, (err) => {
+                if (err) {
+                    error('Error copying file:' + err);
+                } else {
+                    log(`Copied file: ${src} --> ${dst}`);
+                }
+                });
+            }
+        });
+        log(`Copied ${distDir} to ${targetPath}`);
+    });
 }
+copyDirectory(distDir, targetPath);
+
 
