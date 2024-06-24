@@ -2,7 +2,7 @@
   "name": "siyuan_online_devices_mgr",
   "author": "zxkmm",
   "url": "https://github.com/zxkmm/siyuan_online_devices_mgr",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "minAppVersion": "3.0.12",
   "backends": [
     "windows",
@@ -30,7 +30,7 @@
   },
   "funding": {
     "custom": [
-      ""
+      "https://github.com/zxkmm"
     ]
   },
   "keywords": [

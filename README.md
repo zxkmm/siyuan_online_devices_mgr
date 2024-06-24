@@ -10,6 +10,9 @@ Notice you when there's new devices online in SiYuan
  ## 0.0.1
   - init ver
 
+ ## 0.0.2
+  - fine tune notification
+
 # Roadmap
 * [x] online noti
 * [ ] list online devices

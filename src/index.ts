@@ -15,7 +15,7 @@ export default class PluginSample extends Plugin {
       var result = await response.json();
 
       if (this.settingUtils.get("displayNoticeWhenBarkNotiSent")) {
-        showMessage("Bark notification sent: " + result.code);
+        // showMessage("Bark notification sent: " + result.code);
         console.log("Bark notification sent: " + result.code);
       }
     } catch (error) {
@@ -32,6 +32,9 @@ export default class PluginSample extends Plugin {
           this.i18n.barkOnlineNoticeContentHeader + current_device_info;
 
         this.sendBarkNotification(title, body);
+
+        showMessage(this.i18n.onlineLocalmachineNoticeText);
+
         already_noticed_this_boot = true;
       } catch (error) {
         console.error("Error sending bark device online notification:", error);

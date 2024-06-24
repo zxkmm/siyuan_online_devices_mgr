@@ -7,6 +7,7 @@
     "barkApiBaseLinkDesc": "The base link for Bark API, please obtain it after downloading the Bark app.<br>Example: https://api.day.app/AbCdEfGhIjKmLnOpQrStUv",
     "displayNoticeWhenBarkNotiSent": "Display Notification When Bark Notification Sent",
     "displayNoticeWhenBarkNotiSentDesc": "Enabled, a notification will pop up on this device after reporting the online behavior to the phone.",
+    "onlineLocalmachineNoticeText": "Reported this login to the phone",
     "barkOnlineNoticeTitle": "SiYuan Started on Your Device",
     "barkOnlineNoticeContentHeader": "SiYuan has just been started on this device:",
     "cancel": "Cancel",

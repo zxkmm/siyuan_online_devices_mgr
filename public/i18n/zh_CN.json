@@ -7,6 +7,7 @@
     "barkApiBaseLinkDesc": "Bark API的baselink，请下载Bark app后获取。<br>形如：https://api.day.app/AbCdEfGhIjKmLnOpQrStUv",
     "displayNoticeWhenBarkNotiSent": "通知汇报给手机的行为",
     "displayNoticeWhenBarkNotiSentDesc": "启用后，在把上线行为汇报到手机后，本机会弹出一条通知提醒用户",
+    "onlineLocalmachineNoticeText": "本次上线行为已经汇报到手机",
     "barkOnlineNoticeTitle": "您的设备上启动了思源",
     "barkOnlineNoticeContentHeader": "此设备上刚刚启动了思源：",
     "cancel": "取消",

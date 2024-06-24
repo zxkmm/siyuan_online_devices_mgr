@@ -1,6 +1,6 @@
 {
   "name": "siyuan_online_devices_mgr",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "description": "Notice you when there's new devices online in SiYuan",
   "repository": "https://github.com/zxkmm/siyuan_online_devices_mgr",
