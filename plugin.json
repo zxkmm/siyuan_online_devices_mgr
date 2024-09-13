@@ -1,0 +1,39 @@
+{
+  "name": "siyuan_online_devices_mgr",
+  "author": "zxkmm",
+  "url": "https://github.com/zxkmm/siyuan_online_devices_mgr",
+  "version": "0.0.2",
+  "minAppVersion": "3.0.12",
+  "backends": [
+    "windows",
+    "linux",
+    "darwin"
+  ],
+  "frontends": [
+    "desktop",
+    "mobile",
+    "browser-desktop",
+    "browser-mobile",
+    "desktop-window"
+  ],
+  "displayName": {
+    "en_US": "Online Notice",
+    "zh_CN": "上线告知"
+  },
+  "description": {
+    "en_US": "Notice you when there's new devices online in SiYuan",
+    "zh_CN": "当有新设备上线时通知你"
+  },
+  "readme": {
+    "en_US": "README.md",
+    "zh_CN": "README_zh_CN.md"
+  },
+  "funding": {
+    "custom": [
+      "https://github.com/zxkmm"
+    ]
+  },
+  "keywords": [
+    "zxkmm", "siyuan_online_devices_mgr", "上线", "通知", "告知", "设备"
+  ]
+}
