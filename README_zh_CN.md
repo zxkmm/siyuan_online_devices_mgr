@@ -1,4 +1,4 @@
-# 思源上线通知  
+# 思源上线通知
 ## 恳请：
 ## 如果您有空的话，恳求您给我的GitHub仓库点一个**免费**的Star（星星）。
 ## 本插件是完全开源免费的，我相信任何经营模式都有可取之处，本插件的开源免费经营模式，需要的就是您的鼓励。
@@ -6,44 +6,42 @@
 ## 您给我点的免费Star将很大程度帮助我解决温饱问题，再次感谢！
 ## 链接：https://github.com/zxkmm/siyuan_online_devices_mgr
 
-## 
+##
 # siyuan_online_devices_mgr
-当有新设备上线时通知你的手机
+远程管理其他设备的思源，远程锁定，发送远程消息，发送广域消息，上线发送手机通知，真正组成您自己的思源互联框架！
 
-# 使用方法
+# 远程管理
+1. 注册GoEasy账号
+2. 创建实例
+3. 把token复制到插件设置粘贴
+4. 把插件同步到所有设备
+5. 享受！
+
+# 上线告知
 1. 在您的手机上安装 Bark。
 2. 在您的思源笔记中安装此插件。
 3. 输入您的 Bark 基础链接并设置其他选项。
 
 # Roadmap
 * [x] 上线通知
-* [ ] 在线设备查看
-* [ ] 远程锁定
+* [x] 在线设备查看
+* [x] 远程锁定
 * [ ] 远程退出思源
 
 
-# 更新日志
-## 0.0.1
-- 初始版本
-
-# changelog
- ## 0.0.1
-  - init ver
-
- ## 0.0.2
-  - fine tune notification
-
 # 注意事项
-此插件不得用作监控他人行为的工具。  
-任何通知/报告/日志/状态记录/截图/录音/变量名以及此插件生成和使用的所有数据仅用于个人便利，不得用作任何法律依据/证据。  
+此插件不得用作监控他人行为的工具。
+任何通知/报告/日志/状态记录/截图/录音/变量名以及此插件生成和使用的所有数据仅用于个人便利，不得用作任何法律依据/证据。
 您的设备名称和设备标识符将作为 URI 的一部分，通过 webhook 以明文形式传输到 Bark 服务器。
 
 # 注意
-如果您喜欢这个插件，请在 GitHub 仓库上给我一个星标⭐。[https://github.com/zxkmm/siyuan_leave_to_lock](https://github.com/zxkmm/siyuan_leave_to_lock)
+如果您喜欢这个插件，请在 GitHub 仓库上给我一个星标⭐。[https://github.com/zxkmm/siyuan_online_devices_mgr](https://github.com/zxkmm/siyuan_online_devices_mgr)
+
 
 # 致谢
-- [Finb](https://github.com/Finb)
-- [Bark](https://github.com/Finb/Bark)
+- [Finb](https://github.com/Finb) Bark
+- [Bark](https://github.com/Finb/Bark) Bark
+- [Wilsons](https://ld246.com/member/wilsons) 给我推荐非常棒的WS简易封装平台GoEasy
 
 
 # MIT 许可证附加条款

@@ -1,36 +1,38 @@
 # siyuan_online_devices_mgr
 Notice you when there's new devices online in SiYuan
 
-# Usage
-1. install Bark on your phone
-2. Install this plugin in your SiYuan
-3. input your Bark base link and set other setting options.
+# Remote Management
+1. Register a GoEasy account
+2. Create an instance
+3. Copy the token and paste it into the plugin settings
+4. Sync the plugin to all devices
+5. Enjoy!
 
-# changelog
- ## 0.0.1
-  - init ver
+# Online Notification
+1. Install Bark on your phone.
+2. Install this plugin in your SiYuan Note.
+3. Enter your Bark base link and set other options.
 
- ## 0.0.2
-  - fine tune notification
 
 # Roadmap
 * [x] online noti
-* [ ] list online devices
-* [ ] remote lock siyuan
+* [x] list online devices
+* [x] remote lock siyuan
 * [ ] remote exit siyuan
 
 # Precautions
-This plugin must not be used as a tool to monitor others' behavior.  
-Any notifications/reports/logs/status records/screenshots/recordings/variable names and all data generated and used by this plugin are for personal convenience only and are not to be used as any legal basis/evidence.  
-Your device name and device identifier will be part of the URI, transmitted in plain text via webhook to the Bark server.  
+This plugin must not be used as a tool to monitor others' behavior.
+Any notifications/reports/logs/status records/screenshots/recordings/variable names and all data generated and used by this plugin are for personal convenience only and are not to be used as any legal basis/evidence.
+Your device name and device identifier will be part of the URI, transmitted in plain text via webhook to the Bark server.
 
 
 # Note
-Please star⭐ my GitHub repository if you like this plugin. [https://github.com/zxkmm/siyuan_leave_to_lock](https://github.com/zxkmm/siyuan_leave_to_lock)
+Please star⭐ my GitHub repository if you like this plugin. [https://github.com/zxkmm/siyuan_online_devices_mgr](https://github.com/zxkmm/siyuan_online_devices_mgr)
 
-# Credits   
+# Credits
 - [Finb](https://github.com/Finb)
 - [Bark](https://github.com/Finb/Bark)
+- [Wilsons](https://ld246.com/member/wilsons) Recommended GoEasy to me
 
 
 # Additional Attachment to MIT License

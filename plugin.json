@@ -4,11 +4,7 @@
   "url": "https://github.com/zxkmm/siyuan_online_devices_mgr",
   "version": "0.0.2",
   "minAppVersion": "3.0.12",
-  "backends": [
-    "windows",
-    "linux",
-    "darwin"
-  ],
+  "backends": ["windows", "linux", "darwin", "ios", "android", "docker"],
   "frontends": [
     "desktop",
     "mobile",
@@ -17,23 +13,29 @@
     "desktop-window"
   ],
   "displayName": {
-    "en_US": "Online Notice",
-    "zh_CN": "上线告知"
+    "en_US": "Online Devices Manager",
+    "zh_CN": "在线设备管理"
   },
   "description": {
-    "en_US": "Notice you when there's new devices online in SiYuan",
-    "zh_CN": "当有新设备上线时通知你"
+    "en_US": "Remotely manage currently online devices in real-time, send messages, remote lock, and receive mobile notifications for new device logins",
+    "zh_CN": "远程管理当前实时在线的设备，发送消息，远程锁定，新设备上线手机通知"
   },
   "readme": {
     "en_US": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
-    "custom": [
-      "https://github.com/zxkmm"
-    ]
+    "custom": ["https://github.com/zxkmm"]
   },
   "keywords": [
-    "zxkmm", "siyuan_online_devices_mgr", "上线", "通知", "告知", "设备"
+    "zxkmm",
+    "siyuan_online_devices_mgr",
+    "上线",
+    "通知",
+    "告知",
+    "设备",
+    "online",
+    "在线",
+    "管理"
   ]
 }
