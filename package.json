@@ -1,6 +1,6 @@
 {
   "name": "siyuan_online_devices_mgr",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "type": "module",
   "description": "Notice you when there's new devices online in SiYuan",
   "repository": "https://github.com/zxkmm/siyuan_online_devices_mgr",
@@ -32,6 +32,7 @@
     "vite-plugin-zip-pack": "^1.0.5"
   },
   "dependencies": {
+    "@siyuan-community/siyuan-sdk": "^0.3.13",
     "goeasy-lite": "2.13.2"
   }
 }

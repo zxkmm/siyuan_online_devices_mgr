@@ -13,10 +13,13 @@ import GoEasy from "goeasy-lite";
 
 import { SettingUtils } from "./libs/setting-utils";
 import { getDockHTML } from "./dock-template";
+import { Client } from "@siyuan-community/siyuan-sdk";
 
 const STORAGE_NAME = "menu-config";
 const DOCK_TYPE = "dock_tab";
 var already_noticed_this_boot = false;
+
+const client = new Client({});
 
 export default class SiyuanOnlineDeviceManager extends Plugin {
   private goeasy: any;
@@ -39,9 +42,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         //连接失败
         console.log(
           "Failed to connect GoEasy, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
       onProgress: function (attempts) {
@@ -68,9 +71,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       onFailed: function (error) {
         console.log(
           "Channel订阅失败, 错误编码：" +
-            error.code +
-            " 错误信息：" +
-            error.content,
+          error.code +
+          " 错误信息：" +
+          error.content,
         );
       },
     });
@@ -102,9 +105,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         //监听失败
         console.log(
           "Failed to subscribe presence, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
     });
@@ -135,9 +138,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         //获取失败
         console.log(
           "Failed to obtain online clients, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
     });
@@ -157,6 +160,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       case "lockScreen":
         if (receivedDevice == deviceInfo) {
           this.lockCurrentDevice();
+        }
+        break;
+      case "exitSiyuan":
+        if (receivedDevice == deviceInfo) {
+          this.exitCurrentDevice();
         }
         break;
       case "humanMessage":
@@ -180,9 +188,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       onFailed: function (error) {
         console.log(
           "消息发送失败，错误编码：" +
-            error.code +
-            " 错误信息：" +
-            error.content,
+          error.code +
+          " 错误信息：" +
+          error.content,
         );
       },
     });
@@ -198,9 +206,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       onFailed: function (error) {
         console.log(
           "Failed to obtain online clients, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
     });
@@ -215,6 +223,67 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   lockCurrentDevice() {
     lockScreen(this.app);
   }
+
+  async exitByDeviceInfo(_deviceInfo_) {
+    console.log("exit by dev info");
+    this.sendGoeasyMsg(_deviceInfo_ + "#exitSiyuan#nullptr");
+    //i like using nullptr even if in TS, and as a STRING! bite me
+  }
+
+  async exitCurrentDevice() {
+    const exitTexts = ["退出应用", "Exit Application"];
+    // console.log("try to lock"); //DBG
+    var mainMenuButton = document.getElementById("barWorkspace");
+
+    // main menu
+    if (mainMenuButton) {
+      mainMenuButton.click();
+      await this.sleep(300);
+    } else {
+      console.log("siyuan_leave_to_lock: cant find the main menu button");
+      return;
+    }
+
+    await this.sleep(100);
+
+    function findTargetButton(elements) {
+      var targetButton = null;
+      elements.forEach(function (button) {
+        var labelElement = button.querySelector('.b3-menu__label');
+        if (labelElement && exitTexts.includes(labelElement.textContent.trim())) {
+          targetButton = button;
+        } else {
+          var submenu = button.querySelector('.b3-menu__submenu');
+          if (submenu) {
+            // submenu exists 递归
+            targetButton = findTargetButton(submenu.querySelectorAll('.b3-menu__item'));
+          }
+        }
+      });
+      return targetButton;
+    }
+
+    var targetButton = findTargetButton(document.querySelectorAll('.b3-menu__item'));
+
+    if (targetButton) {
+      targetButton.click();
+    } else {
+      console.error('siyuan_leave_to_lock: cant find the exit text');
+    }
+
+    await this.sleep(60000);
+
+
+    client.exit({
+      force: false
+    });
+  }
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+
 
   async sendBarkNotification(title: string, body: string) {
     try {
@@ -434,8 +503,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       response.content.members.forEach((member) => {
         // console.log("mem:", member.id);
         deviceListHtml +=
-          member.id == this.fetchCurrentDeviceInfoAwait()
-            ? `
+          member.id == this.fetchCurrentDeviceInfoAwait() //local machine or not
+            ? ` 
           <div class="device-item">
             <div class="device-info">
               <div class="device-name">${this.i18n.textDeviceName}${member.data.deviceName}</div>
@@ -525,8 +594,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         this.lockByDeviceInfo(deviceId);
         break;
       case "exit-siyuan":
-        showMessage("此功能暂时没有实现");
-        console.log("Shutdown device:", deviceId);
+        this.exitByDeviceInfo(deviceId);
+        console.log("Exit device:", deviceId);
         break;
       case "send-human-msg":
         this.inputDialog({
@@ -571,7 +640,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
       this.initGoeasy();
 
-      this.fetchOnlineDevices(() => {});
+      this.fetchOnlineDevices(() => { });
 
       this.addDock({
         config: {
@@ -654,9 +723,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         //监听失败
         console.log(
           "Failed to unsubscribe presence, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
     });
@@ -671,9 +740,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       onFailed: function (error) {
         console.log(
           "取消订阅失败，错误编码：" +
-            error.code +
-            " 错误信息：" +
-            error.content,
+          error.code +
+          " 错误信息：" +
+          error.content,
         );
       },
     });
@@ -687,16 +756,16 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       onFailed: function (error) {
         console.log(
           "Failed to disconnect GoEasy, code:" +
-            error.code +
-            ",error:" +
-            error.content,
+          error.code +
+          ",error:" +
+          error.content,
         );
       },
     });
     ///^
   }
 
-  uninstall() {}
+  uninstall() { }
 
   async currentDeviceInList() {
     try {
@@ -800,17 +869,14 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     const dialog = new Dialog({
       title: args.title,
       content: `<div class="b3-dialog__content">
-      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder=${
-        args?.placeholder ?? ""
-      }>${args?.defaultText ?? ""}</textarea></div>
+      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder=${args?.placeholder ?? ""
+        }>${args?.defaultText ?? ""}</textarea></div>
   </div>
   <div class="b3-dialog__action">
-      <button class="b3-button b3-button--cancel">${
-        window.siyuan.languages.cancel
-      }</button><div class="fn__space"></div>
-      <button class="b3-button b3-button--text" id="confirmDialogConfirmBtn">${
-        window.siyuan.languages.confirm
-      }</button>
+      <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel
+        }</button><div class="fn__space"></div>
+      <button class="b3-button b3-button--text" id="confirmDialogConfirmBtn">${window.siyuan.languages.confirm
+        }</button>
   </div>`,
       width: args.width ?? "520px",
       height: args.height,
