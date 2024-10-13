@@ -630,7 +630,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   onLayoutReady() {
     if (
       this.settingUtils.get("mainSwitch") &&
-      this.settingUtils.get("goeasySwitch")
+      this.settingUtils.get("goeasySwitch") &&
+      this.settingUtils.get("goeasyToken")
     ) {
       this.goeasy = GoEasy.getInstance({
         host: "hangzhou.goeasy.io",
