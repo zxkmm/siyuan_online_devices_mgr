@@ -88,6 +88,8 @@ export function getDockHTML(
     <div class="dock-content">
       <button id="refreshDeviceList" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textRefresh}</button>
       <button id="sendBroadcast" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textSendBroadcast}</button>
+      <button id="sendBroadcastClipboard" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textSendBroadcastClipboard}</button>
+
       <div class="device-list" id="onlineDeviceList">
         Loading...
       </div>
@@ -108,7 +110,7 @@ export function getDockHTML(
       <div class="fn__flex-column" style="height: 100%;">
         <div class="toolbar toolbar--border toolbar--dark">
           <svg class="toolbar__icon"><use xlink:href="#iconDevices"></use></svg>
-          <div class="toolbar__text">Online Device Manager</div>
+          <div class="toolbar__text">${_instance_.i18n.name}</div>
         </div>
         ${styles}
         <div class="fn__flex-1 plugin-sample__custom-dock">
@@ -123,7 +125,7 @@ export function getDockHTML(
         <div class="block__icons">
           <div class="block__logo">
             <svg class="block__logoicon"><use xlink:href="#iconDevices"></use></svg>
-            Online Device Manager
+            ${_instance_.i18n.name}
           </div>
           <span class="fn__flex-1 fn__space"></span>
           <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ⌘W">

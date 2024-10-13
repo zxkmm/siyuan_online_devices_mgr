@@ -19,6 +19,7 @@ Notice you when there's new devices online in SiYuan
 * [x] list online devices
 * [x] remote lock siyuan
 * [x] remote exit siyuan
+* [x] remote send clipboard
 
 # Precautions
 This plugin must not be used as a tool to monitor others' behavior.

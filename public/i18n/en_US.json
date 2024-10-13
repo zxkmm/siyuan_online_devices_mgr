@@ -36,6 +36,7 @@
 
   "textRefresh": "🔄 Refresh",
   "textSendBroadcast": "📣 Send Broadcast Message",
+  "textSendBroadcastClipboard": "📚 Send Broadcast Clipboard",
 
   "textDeviceName": "Device Name: ",
   "textDeviceUuid": "Device UUID: ",
@@ -43,5 +44,8 @@
 
   "textLock": "🔒 Lock",
   "textExit": "❎ Exit",
-  "textSendMessage": "📢 Send Message"
+  "textSendMessage": "📢 Send Message",
+  "textSendToClipboard": "📋 Send to Clipboard"
+
+  "name":"Online Devices Manager"
 }

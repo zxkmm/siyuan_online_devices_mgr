@@ -36,6 +36,7 @@
 
   "textRefresh": "🔄 刷新",
   "textSendBroadcast": "📣 发送广域消息",
+  "textSendBroadcastClipboard": "📚 发送广域剪贴板",
 
   "textDeviceName": "设备名： ",
   "textDeviceUuid": "设备UUID： ",
@@ -44,6 +45,9 @@
   "textLock": "🔒 锁定",
   "textExit": "❎ 退出",
   "textSendMessage": "📢 发消息",
+  "textSendToClipboard": "📋 发送剪贴板",
+
+  "name":"在线设备管理",
 
   "beggingInfoText": "<span style=\"color: red;\">(此消息只有极小的概率会出现，且在我攒够足够的星星后会自动消失，永不再显示)</span><br>致用户：<br>这是一条艰难的恳求，请您点击下方的链接，给我的GitHub点一个免费的⭐Star(星星)。本插件是完全开源免费的，您给我的⭐星星是我唯一能从中得到的鼓励。否则我和我的其他插件将很难维持下去。我是毕业大学生，在艰难的就业市场中正在寻找工作。您给我点的每一颗免费⭐Star将很大程度帮助我解决温饱问题，再次感谢！"
 }

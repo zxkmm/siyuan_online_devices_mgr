@@ -173,6 +173,12 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           showMessage(receivedContent);
         }
         break;
+      case "clipboard":
+        console.log("clipboard");
+        if (receivedDevice == "ALL" || receivedDevice == deviceInfo) {
+          this.copyToClipboard(receivedContent);
+        }
+        break;
       default:
         console.log("Unknown command:", receivedCommand);
     }
@@ -515,6 +521,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textLock}</button>
             <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textExit}</button>
             <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendMessage}</button>
+            <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendToClipboard}</button>
+
             </div>
           </div>
         `
@@ -528,6 +536,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textLock}</button>
               <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textExit}</button>
               <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendMessage}</button>
+              <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendToClipboard}</button>
+
             </div>
           </div>
         `;
@@ -568,6 +578,25 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     }
   }
 
+  addBroadcastClipboardButtonListener() {
+    const sendBroadcastClipboardButton = document.getElementById("sendBroadcastClipboard");
+    if (sendBroadcastClipboardButton) {
+      sendBroadcastClipboardButton.addEventListener("click", () => {
+        this.inputDialog({
+          title: "发送广域剪贴板",
+          placeholder: "这回发送给所有在线设备。请注意：如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          width: this.isMobile ? "95vw" : "70vw",
+          height: this.isMobile ? "95vw" : "30vw",
+          confirm: (text: string) => {
+            this.sendGoeasyMsg("ALL#clipboard#" + text);
+            console.log("send clipboard:", text);
+            //TODO: more thigns here maybe
+          },
+        });
+      });
+    }
+  }
+
   addDeviceActionListeners() {
     const actionButtons = document.querySelectorAll(".device-action");
     actionButtons.forEach((button) => {
@@ -580,7 +609,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             ? "exit-siyuan"
             : target.classList.contains("send-human-msg")
               ? "send-human-msg"
-              : null;
+              : target.classList.contains("send-clipboard")
+                ? "send-clipboard"
+                : null;
         if (deviceId && action) {
           this.performDeviceAction(deviceId, action);
         }
@@ -610,6 +641,17 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         });
         console.log("send human msg:", deviceId);
         break;
+      case "send-clipboard":
+        this.inputDialog({
+          title: "发送到剪贴板",
+          placeholder: "此将会发送内容到目标设备的剪贴板。请注意，如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          width: this.isMobile ? "95vw" : "70vw",
+          height: this.isMobile ? "95vw" : "30vw",
+          confirm: (text: string) => {
+            this.sendGoeasyMsg(deviceId + "#clipboard#" + text);
+            //TODO: more thigns here maybe
+          },
+        });
     }
   }
 
@@ -625,6 +667,41 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         }
       });
     });
+  }
+
+  copyToClipboard(text: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+      // api
+      navigator.clipboard.writeText(text).then(() => {
+        console.log("文本已成功复制到剪贴板");
+      }).catch(err => {
+        console.error("无法复制文本: ", err);
+      });
+    } else {
+      // fallback
+      let textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";  // 避免滚动到底部
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        let successful = document.execCommand('copy');
+        let msg = successful ? '成功' : '失败';
+        console.log('后备方案: 复制文本' + msg);
+      } catch (err) {
+        console.error('后备方案: 无法复制文本', err);
+      }
+      document.body.removeChild(textArea);
+    }
+  }
+
+  getDeviceDetails(){
+    let details = "";
+    details+="OS: "+window.siyuan.config.system.os;
+    details+="Platform: "+window.siyuan.config.system.osPlatform;
+    details+="Workspace: "+window.siyuan.config.system.workspaceDir;
+    return details;
   }
 
   onLayoutReady() {
@@ -648,11 +725,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           position: "LeftBottom",
           size: { width: 200, height: 0 },
           icon: "iconDevices",
-          title: "Online Device Manager",
+          title: this.i18n.name,
           hotkey: "⌥⌘M",
         },
         data: {
-          text: "Online Device Manager",
+          text: this.i18n.name,
         },
         type: DOCK_TYPE,
         resize() {
@@ -666,6 +743,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           this.updateOnlineDeviceList();
           this.addRefreshButtonListener();
           this.addBroadcastButtonListener();
+          this.addBroadcastClipboardButtonListener();
         },
         destroy() {
           console.log("destroy dock:", DOCK_TYPE);
