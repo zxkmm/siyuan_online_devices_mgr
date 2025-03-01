@@ -1,4 +1,5 @@
 import { exitSiYuan } from "siyuan";
+import {performSync} from "../api";
 
 export class DeviceService {
   private goEasyService: any;
@@ -44,6 +45,12 @@ export class DeviceService {
     /* requester */
   triggerSync(deviceInfo: string) {
     this.goEasyService.sendMessage(deviceInfo + "#triggerSync#nullptr");
+  }
+
+  /* responsor */
+  async syncCurrentDevice() {
+    console.log("try sync this me");
+    performSync();
   }
 
   getCurrentDeviceInfo(): string {

@@ -24,7 +24,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private deviceService: DeviceService;
   private notificationService: NotificationService;
   private clipboardService: ClipboardService;
-  
+
   // customTab: () => IModel;
   private isMobile: boolean;
   private settingUtils: SettingUtils;
@@ -34,7 +34,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       <path d="M472,232H424V120a24.028,24.028,0,0,0-24-24H40a24.028,24.028,0,0,0-24,24V366a24.028,24.028,0,0,0,24,24H212v50H152v32H304V440H244V390h92v58a24.027,24.027,0,0,0,24,24H472a24.027,24.027,0,0,0,24-24V256A24.027,24.027,0,0,0,472,232ZM336,256V358H48V128H392V232H360A24.027,24.027,0,0,0,336,256ZM464,440H368V264h96Z"></path>
       </symbol>
     `);
-    
+
     this.data[STORAGE_NAME] = { readonlyText: "Readonly" };
 
     const frontEnd = getFrontend();
@@ -46,17 +46,19 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     });
 
     this.initSettings();
-    
+
     try {
       this.settingUtils.load();
     } catch (error) {
       console.error(
         "Error loading settings storage, probably empty config json:",
-        error,
+        error
       );
     }
 
-    console.log("Current device: " + this.deviceService?.getCurrentDeviceInfo());
+    console.log(
+      "Current device: " + this.deviceService?.getCurrentDeviceInfo()
+    );
   }
 
   private initSettings() {
@@ -239,37 +241,42 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           this.clipboardService.copyToClipboard(receivedContent);
         }
         break;
+      case "triggerSync":
+        if (receivedDevice === deviceInfo) {
+          this.deviceService.syncCurrentDevice();
+        }
+        break;
       default:
         console.log("Unknown command:", receivedCommand);
     }
-  }
-  
+  };
+
   updateDeviceListFromPresence = (presenceEvent: any) => {
     this.updateOnlineDeviceList();
-  }
+  };
 
   initializeServices() {
     // clipboard service
     this.clipboardService = new ClipboardService();
-    
+
     // notification service
     this.notificationService = new NotificationService(
       this.settingUtils.get("barkApiBaseLink"),
       this.settingUtils.get("displayNoticeWhenBarkNotiSent")
     );
-    
+
     // GoEasy service with message handler
     this.goEasyService = new GoEasyService(
       this.settingUtils.get("goeasyToken"),
       this.handleMessage,
       this.updateDeviceListFromPresence
     );
-    
+
     // device service
     this.deviceService = new DeviceService(
-      this.goEasyService, 
+      this.goEasyService,
       () => this.onLockScreen() // this got to be callback bc ONLY this base plugin class can call lockScreen(this.app) somehow.
-    );    
+    );
     // connect to GoEasy
     const deviceInfo = this.deviceService.getCurrentDeviceInfo();
     this.goEasyService.connect(deviceInfo);
@@ -282,7 +289,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       this.settingUtils.get("goeasyToken")
     ) {
       this.initializeServices();
-      
+
       this.goEasyService.fetchOnlineDevices(() => {});
 
       this.addDock({
@@ -320,7 +327,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
     this.handleLayoutReadyAsync();
   }
-  
+
   private async handleLayoutReadyAsync() {
     try {
       if (
@@ -332,13 +339,14 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           this.settingUtils.get("barkMsgSwitch") &&
           this.settingUtils.get("barkApiBaseLink") !== ""
         ) {
-          already_noticed_this_boot = await this.notificationService.sendBarkDeviceOnlineNotification(
-            this.deviceService.getCurrentDeviceInfo(),
-            this.i18n.barkOnlineNoticeTitle,
-            this.i18n.barkOnlineNoticeContentHeader,
-            this.i18n.onlineLocalmachineNoticeText,
-            already_noticed_this_boot
-          );
+          already_noticed_this_boot =
+            await this.notificationService.sendBarkDeviceOnlineNotification(
+              this.deviceService.getCurrentDeviceInfo(),
+              this.i18n.barkOnlineNoticeTitle,
+              this.i18n.barkOnlineNoticeContentHeader,
+              this.i18n.onlineLocalmachineNoticeText,
+              already_noticed_this_boot
+            );
         }
       }
     } catch (error) {
@@ -424,12 +432,15 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   }
 
   addBroadcastClipboardButtonListener() {
-    const sendBroadcastClipboardButton = document.getElementById("sendBroadcastClipboard");
+    const sendBroadcastClipboardButton = document.getElementById(
+      "sendBroadcastClipboard"
+    );
     if (sendBroadcastClipboardButton) {
       sendBroadcastClipboardButton.addEventListener("click", () => {
         this.inputDialog({
           title: "发送广域剪贴板",
-          placeholder: "这回发送给所有在线设备。请注意：如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          placeholder:
+            "这回发送给所有在线设备。请注意：如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -451,12 +462,14 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         const action = target.classList.contains("lock-siyuan")
           ? "lock-siyuan"
           : target.classList.contains("exit-siyuan")
-            ? "exit-siyuan"
-            : target.classList.contains("send-human-msg")
-              ? "send-human-msg"
-              : target.classList.contains("send-clipboard")
-                ? "send-clipboard"
-                : null;
+          ? "exit-siyuan"
+          : target.classList.contains("send-human-msg")
+          ? "send-human-msg"
+          : target.classList.contains("send-clipboard")
+          ? "send-clipboard"
+          : target.classList.contains("trigger-sync")
+          ? "trigger-sync"
+          : null;
         if (deviceId && action) {
           this.performDeviceAction(deviceId, action);
         }
@@ -489,7 +502,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       case "send-clipboard":
         this.inputDialog({
           title: "发送到剪贴板",
-          placeholder: "此将会发送内容到目标设备的剪贴板。请注意，如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          placeholder:
+            "此将会发送内容到目标设备的剪贴板。请注意，如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -497,6 +511,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             //TODO: more thigns here maybe
           },
         });
+        break;
+      case "trigger-sync":
+        this.deviceService.triggerSync(deviceId + "#triggerSync#nullptr");
+
+      
     }
   }
 
@@ -510,7 +529,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     }
   }
 
-  uninstall() { }
+  uninstall() {}
 
   async currentDeviceInList() {
     try {
@@ -547,7 +566,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
       this.settingUtils.assignValue(
         "enableDeviceList",
-        enableDeviceListArrayString,
+        enableDeviceListArrayString
       );
       this.settingUtils.save();
     } catch (error) {
@@ -576,7 +595,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
       this.settingUtils.assignValue(
         "enableDeviceList",
-        enableDeviceListArrayString,
+        enableDeviceListArrayString
       );
       this.settingUtils.save();
     } catch (error) {
@@ -598,20 +617,23 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     const dialog = new Dialog({
       title: args.title,
       content: `<div class="b3-dialog__content">
-      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder=${args?.placeholder ?? ""
-        }>${args?.defaultText ?? ""}</textarea></div>
+      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder=${
+        args?.placeholder ?? ""
+      }>${args?.defaultText ?? ""}</textarea></div>
   </div>
   <div class="b3-dialog__action">
-      <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel
-        }</button><div class="fn__space"></div>
-      <button class="b3-button b3-button--text" id="confirmDialogConfirmBtn">${window.siyuan.languages.confirm
-        }</button>
+      <button class="b3-button b3-button--cancel">${
+        window.siyuan.languages.cancel
+      }</button><div class="fn__space"></div>
+      <button class="b3-button b3-button--text" id="confirmDialogConfirmBtn">${
+        window.siyuan.languages.confirm
+      }</button>
   </div>`,
       width: args.width ?? "520px",
       height: args.height,
     });
     const target: HTMLTextAreaElement = dialog.element.querySelector(
-      ".b3-dialog__content>div.ft__breakword>textarea",
+      ".b3-dialog__content>div.ft__breakword>textarea"
     );
     const btnsElement = dialog.element.querySelectorAll(".b3-button");
     btnsElement[0].addEventListener("click", () => {
