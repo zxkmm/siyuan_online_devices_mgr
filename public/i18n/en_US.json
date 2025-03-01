@@ -46,6 +46,7 @@
   "textExit": "❎ Exit",
   "textSendMessage": "📢 Send Message",
   "textSendToClipboard": "📋 Send to Clipboard",
+  "textTriggerSync": "🔄 Trigger Sync",
 
   "name":"Online Devices Manager",
 

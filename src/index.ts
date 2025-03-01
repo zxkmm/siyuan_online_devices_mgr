@@ -60,7 +60,6 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   }
 
   private initSettings() {
-    // Add all your setting items here...
     this.settingUtils.addItem({
       key: "begging",
       value: "",
@@ -366,7 +365,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textExit}</button>
             <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendMessage}</button>
             <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendToClipboard}</button>
-
+            <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textTriggerSync}</button>
             </div>
           </div>
         `
@@ -381,6 +380,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textExit}</button>
               <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendMessage}</button>
               <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendToClipboard}</button>
+              <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textTriggerSync}</button>
+
 
             </div>
           </div>

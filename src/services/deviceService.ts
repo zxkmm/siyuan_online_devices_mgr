@@ -9,11 +9,13 @@ export class DeviceService {
     this.lockScreenCallback = lockScreenCallback;
   }
 
+  /* requestor */
   async lockDevice(deviceInfo: string) {
     console.log("lock by dev info");
     this.goEasyService.sendMessage(deviceInfo + "#lockScreen#nullptr");
   }
 
+  /* responsor */
   lockCurrentDevice() {
     console.log("try lock this me");
     if (this.lockScreenCallback) {
@@ -34,8 +36,14 @@ export class DeviceService {
     this.goEasyService.sendMessage(deviceInfo + "#humanMessage#" + message);
   }
 
+    /* requester */
   sendToClipboard(deviceInfo: string, content: string) {
     this.goEasyService.sendMessage(deviceInfo + "#clipboard#" + content);
+  }
+
+    /* requester */
+  triggerSync(deviceInfo: string) {
+    this.goEasyService.sendMessage(deviceInfo + "#triggerSync#nullptr");
   }
 
   getCurrentDeviceInfo(): string {

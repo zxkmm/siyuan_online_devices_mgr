@@ -15,6 +15,15 @@ export async function request(url: string, data: any) {
     return res;
 }
 
+/* custom */
+export async function performSync(upload: boolean = true) {
+    let data = {
+        upload: upload
+    }
+    let url = '/api/sync/performSync';
+    return request(url, data);
+}
+
 
 // **************************************** Noteboook ****************************************
 
