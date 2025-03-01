@@ -32,7 +32,7 @@
   "goeasyTokenDesc": "请参考如下链接获取token：<a href='https://ld246.com/article/1726244008032'>链接</a>",
 
   "barkMsgSwitch": "用Bark发送设备上线通知",
-  "barkMsgSwitchDesc": "该功能需要你正确填写goeasy的webhook baselink",
+  "barkMsgSwitchDesc": "该功能需要你正确填写goeasy的webhook baselink; 如果不需要上线通知功能，则不需要启用和填写。",
 
   "textRefresh": "🔄 刷新",
   "textSendBroadcast": "📣 发送广域消息",
@@ -49,5 +49,11 @@
 
   "name":"在线设备管理",
 
-  "beggingInfoText": "<span style=\"color: red;\">(此消息只有极小的概率会出现，且在我攒够足够的星星后会自动消失，永不再显示)</span><br>致用户：<br>这是一条艰难的恳求，请您点击下方的链接，给我的GitHub点一个免费的⭐Star(星星)。本插件是完全开源免费的，您给我的⭐星星是我唯一能从中得到的鼓励。否则我和我的其他插件将很难维持下去。我是毕业大学生，在艰难的就业市场中正在寻找工作。您给我点的每一颗免费⭐Star将很大程度帮助我解决温饱问题，再次感谢！"
+  "beggingInfoText": "<span style=\"color: red;\">(此消息只有极小的概率会出现，且在我攒够足够的星星后会自动消失，永不再显示)</span><br>🙏乞讨🙏<br>这款插件是开源免费的，因此我需要您的鼓励.<br>如果您喜欢这款插件为您带来的功能，您可以考虑捐款给我，帮助我解决温饱🍚问题：<a href='https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704'>捐款</a>。（捐款不会解锁更多功能）  <br>如果您经济不宽裕，您可以考虑给<a href='https://github.com/zxkmm/siyuan_online_devices_mgr'>我的GitHub仓库</a>点一下免费的⭐星星鼓励我。  <br>如果您认为您或者您认识的人需要我的技能，欢迎随时雇用我。",
+
+
+  "beggingTitle": "🙏乞讨🙏",
+  "beggingDesc": "这款插件是开源免费的，因此我需要您的鼓励.<br>如果您喜欢这款插件为您带来的功能，您可以考虑捐款给我，帮助我解决温饱🍚问题：<a href='https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704'>捐款</a>。（捐款不会解锁更多功能）  <br>如果您经济不宽裕，您可以考虑给<a href='https://github.com/zxkmm/siyuan_online_devices_mgr'>我的GitHub仓库</a>点一下免费的⭐星星鼓励我。  <br>如果您认为您或者您认识的人需要我的技能，欢迎随时雇用我。"
+
+
 }
