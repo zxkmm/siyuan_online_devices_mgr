@@ -62,6 +62,18 @@ export function getDockHTML(
         margin-bottom: 10px;
       }
 
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .loading-icon {
+        animation: spin 2s linear infinite;
+      }
+      .device-action.locking {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+
 
       .dock-content {
         display: flex;

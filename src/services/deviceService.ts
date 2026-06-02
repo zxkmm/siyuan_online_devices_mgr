@@ -1,5 +1,5 @@
 import { exitSiYuan } from "siyuan";
-import {performSync} from "../api";
+import {performSync, setAccessAuthCode} from "../api";
 
 export class DeviceService {
   private goEasyService: any;
@@ -17,7 +17,7 @@ export class DeviceService {
   }
 
   /* responsor */
-  lockCurrentDevice() {
+  async lockCurrentDevice() {
     console.log("try lock this me");
     if (this.lockScreenCallback) {
       this.lockScreenCallback();
@@ -47,10 +47,21 @@ export class DeviceService {
     this.goEasyService.sendMessage(deviceInfo + "#triggerSync#nullptr");
   }
 
+  /* requester */
+  setAutoPassword(deviceInfo: string, password: string) {
+    this.goEasyService.sendMessage(deviceInfo + "#setAutoPassword#" + password);
+  }
+
   /* responsor */
   async syncCurrentDevice() {
     console.log("try sync this me");
-    performSync();
+    await performSync();
+  }
+
+  /* responsor */
+  async setCurrentDeviceAutoPassword(password: string) {
+    console.log("try set auto password this me");
+    await setAccessAuthCode(password);
   }
 
   getCurrentDeviceInfo(): string {

@@ -1,6 +1,6 @@
 {
   "warningTitle": "Warning",
-  "warningDesc": "This plugin is not allowed to be used as a tool to monitor others' behavior.<br>Any data generated and used by this plugin, such as notifications/reports/logs/status records/screenshots/screen recordings/variable names, etc., are for personal convenience only and are not to be used as any legal basis/evidence.<br>Your device name and device identifier will be transmitted as part of the URI in plain text via webhook or WS to the servers running Bark and GoEasy.",
+  "warningDesc": "This plugin is not allowed to be used as a tool to monitor others' behavior.<br>Any data generated and used by this plugin, such as notifications/reports/logs/status records/screenshots/screen recordings/variable names, etc., are for personal convenience only and are not to be used as any legal basis/evidence.<br>The developer of this plugin does not collect any of your data, but the two SaaS providers used by this plugin may have their own privacy policies.<br>That is to say, your device name and device identifier will be transmitted as part of the URI in the form of plain text webhook or WS to the servers running Bark and GoEasy. Although they cannot be seen by any man-in-the-middle under TLS encryption, the SaaS providers can see them in principle.<br>Please make sure you have read and agreed to their privacy policies and terms of service.",
   "mainSwitch": "Main Switch",
   "mainSwitchDesc": "",
   "barkApiBaseLink": "Bark API Baselink",
@@ -23,7 +23,7 @@
   "removeCurrentDeviceFromListDesc": "Remove the current device from the table",
   "removeCurrentDeviceFromListLabel": "Remove",
   "hintTitle": "About",
-  "hintDesc": "<ul><li>● Made by <a href='https://github.com/zxkmm'>zxkmm</a>, open-sourced under the MIT license.</li><li>● If you like this plugin, please give my GitHub repository a free star⭐ (Star).</li><li>● Link: <a href='siyuan_online_devices_mgr'>siyuan_online_devices_mgr</a></li><li>",
+  "hintDesc": "<ul><li>● Made by <a href='https://github.com/zxkmm'>zxkmm</a>, open-sourced under the GPL license.</li><li>● If you like this plugin, please give my GitHub repository a free star⭐ (Star).</li><li>● Link: <a href='siyuan_online_devices_mgr'>siyuan_online_devices_mgr</a></li><li>",
 
   "goeasySwitch": "Use Online Device Management Feature",
   "goeasySwitchDesc": "This feature requires you to correctly fill in the GoEasy token.",
@@ -36,7 +36,9 @@
 
   "textRefresh": "Refresh",
   "textSendBroadcast": "Send Broadcast Message",
+  "textSendBroadcastPlaceholder": "e.g., ping test!",
   "textSendBroadcastClipboard": "Send Broadcast Clipboard",
+  "textSendBroadcastClipboardPlaceholder": "This will be sent to all online devices. Note: if the target device doesn't have a clipboard manager, the previous clipboard content will be overwritten and cannot be retrieved.",
 
   "textDeviceName": "Device Name: ",
   "textDeviceUuid": "Device UUID: ",
@@ -45,8 +47,25 @@
   "textLock": "Lock",
   "textExit": "Exit",
   "textSendMessage": "Send Message",
+  "textSendMessagePlaceholder": "e.g., Don't look at my notes!",
   "textSendToClipboard": "Send to Clipboard",
+  "textSendToClipboardPlaceholder": "This will send content to the target device's clipboard. Note: if the target device doesn't have a clipboard manager, the previous clipboard content will be overwritten and cannot be retrieved.",
   "textTriggerSync": "Trigger Sync",
+  "textSetAutoPassword": "Set Access Auth Code",
+  "textSetAutoPasswordPlaceholder": "Enter new Access Auth Code, please remember it carefully, otherwise you may have difficulty (or impossible) to unlock that device later.",
+  "textSetAutoPasswordConfirm": "Confirm Access Auth Code",
+  "textSetAutoPasswordConfirmPlaceholder": "Please enter the Access Auth Code again to confirm",
+  "textPasswordMismatch": "The two Access Auth Codes entered do not match, please try again.",
+  "textPasswordHistory": "Password History",
+  "textPasswordHistoryDesc": "Records the access codes set from this device in case you forget them.",
+  "textViewPasswordHistory": "View History",
+  "textPasswordHistoryTitle": "Access Code History (This Device)",
+  "textNoPasswordHistory": "No history records yet.",
+  "textLockSuccess": "Locked successfully",
+  "textLockFail": "Lock failed, most likely because the remote device has no access auth code set. Please use the 'Set Access Auth Code' feature first.",
+
+  "goeasyTokenMissing": "Please fill in the GoEasy Token first",
+  "barkUrlMissing": "Please fill in the Bark API Baselink first",
 
   "name":"Online Devices Manager",
 

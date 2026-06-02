@@ -463,3 +463,7 @@ export async function version(): Promise<string> {
 export async function currentTime(): Promise<number> {
     return request('/api/system/currentTime', {});
 }
+
+export async function setAccessAuthCode(accessAuthCode: string): Promise<any> {
+    return request('/api/system/setAccessAuthCode', { accessAuthCode: accessAuthCode });
+}

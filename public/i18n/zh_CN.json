@@ -1,6 +1,6 @@
 {
   "warningTitle": "警告",
-  "warningDesc": "不允许使用此插件作为监控他人行为的工具。<br>此插件的任何通知/汇报/日志/状态记录/截屏/录屏/变量名等一切产生和使用的数据仅供个人方便为目的而使用，不作为任何法律依据/证据。<br>您的设备名和设备标识会作为URI的一部分，以明文webhook或WS的形式传送到运行Bark和GoEasy的服务器",
+  "warningDesc": "不允许使用此插件作为监控他人行为的工具。<br>此插件的任何通知/汇报/日志/状态记录/截屏/录屏/变量名等一切产生和使用的数据仅供个人方便为目的而使用，不作为任何法律依据/证据。<br>作者不会收集您的任何数据，但是该插件所使用的两个SaaS提供商或许有他们自己的隐私政策。<br>也就是说，您的设备名和设备标识会作为URI的一部分，以明文webhook或WS的形式传送到运行Bark和GoEasy的服务器，虽然在TLS加密下，任何中间人看不到，但是SaaS提供商原则上可以看到。<br>请确保您阅读并同意他们的隐私政策和服务条款。",
   "mainSwitch": "主开关",
   "mainSwitchDesc": "",
   "barkApiBaseLink": "Bark API Baselink",
@@ -23,7 +23,7 @@
   "removeCurrentDeviceFromListDesc": "把当前设备从表中移除",
   "removeCurrentDeviceFromListLabel": "移除",
   "hintTitle": "关于",
-  "hintDesc": "<ul><li>● 由<a href='https://github.com/zxkmm'>zxkmm</a>制作， MIT 协议开源。</li><li>● 如果您喜欢这个插件，请给我的 GitHub 仓库点亮免费的星星⭐（Star）。</li><li>● 链接：<a href='siyuan_online_devices_mgr'>siyuan_online_devices_mgr</a></li><li>",
+  "hintDesc": "<ul><li>● 由<a href='https://github.com/zxkmm'>zxkmm</a>制作， GPL 协议开源。</li><li>● 如果您喜欢这个插件，请给我的 GitHub 仓库点亮免费的星星⭐（Star）。</li><li>● 链接：<a href='siyuan_online_devices_mgr'>siyuan_online_devices_mgr</a></li><li>",
 
   "goeasySwitch": "使用在线设备管理功能",
   "goeasySwitchDesc": "该功能需要你正确填写goeasy的token",
@@ -36,7 +36,9 @@
 
   "textRefresh": "刷新",
   "textSendBroadcast": "发送广域消息",
+  "textSendBroadcastPlaceholder": "例如：ping测试！",
   "textSendBroadcastClipboard": "发送广域剪贴板",
+  "textSendBroadcastClipboardPlaceholder": "这会发送给所有在线设备。请注意：如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
 
   "textDeviceName": "设备名： ",
   "textDeviceUuid": "设备UUID： ",
@@ -45,8 +47,25 @@
   "textLock": "锁定",
   "textExit": "退出",
   "textSendMessage": "发消息",
+  "textSendMessagePlaceholder": "例如：别偷看我笔记！",
   "textSendToClipboard": "发送剪贴板",
+  "textSendToClipboardPlaceholder": "此将会发送内容到目标设备的剪贴板。请注意，如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
   "textTriggerSync": "触发同步",
+  "textSetAutoPassword": "设置访问码",
+  "textSetAutoPasswordPlaceholder": "输入新的访问码，请千万记住该密码，否则您以后可能难以（或是不可能）解锁那台设备。",
+  "textSetAutoPasswordConfirm": "确认访问码",
+  "textSetAutoPasswordConfirmPlaceholder": "请再次输入访问码以确认",
+  "textPasswordMismatch": "两次输入的访问码不一致，请重试。",
+  "textPasswordHistory": "密码设置历史",
+  "textPasswordHistoryDesc": "记录了从本设备设置过的访问码，以防忘记。",
+  "textViewPasswordHistory": "查看历史记录",
+  "textPasswordHistoryTitle": "访问码设置历史（本设备）",
+  "textNoPasswordHistory": "暂无历史记录",
+  "textLockSuccess": "锁定成功",
+  "textLockFail": "锁定失败，这很可能是因为远端设备没有设置访问授权码，请先使用设置访问授权码功能。",
+
+  "goeasyTokenMissing": "请先填写 GoEasy Token",
+  "barkUrlMissing": "请先填写 Bark API Baselink",
 
   "name":"在线设备管理",
 

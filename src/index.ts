@@ -24,6 +24,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private deviceService: DeviceService;
   private notificationService: NotificationService;
   private clipboardService: ClipboardService;
+  private pendingLocks: Map<string, any> = new Map();
 
   // customTab: () => IModel;
   private isMobile: boolean;
@@ -55,10 +56,6 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         error
       );
     }
-
-    console.log(
-      "Current device: " + this.deviceService?.getCurrentDeviceInfo()
-    );
   }
 
   private initSettings() {
@@ -206,6 +203,26 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       },
     });
     this.settingUtils.addItem({
+      key: "passwordHistory",
+      value: "",
+      type: "textarea",
+      title: this.i18n.textPasswordHistory,
+      description: this.i18n.textPasswordHistoryDesc,
+    });
+    this.settingUtils.addItem({
+      key: "viewPasswordHistory",
+      value: "",
+      type: "button",
+      title: this.i18n.textViewPasswordHistory,
+      description: "",
+      button: {
+        label: this.i18n.textViewPasswordHistory,
+        callback: () => {
+          this.showPasswordHistoryDialog();
+        },
+      },
+    });
+    this.settingUtils.addItem({
       key: "Hint",
       value: "",
       type: "hint",
@@ -214,7 +231,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     });
   }
 
-  handleMessage = (message: any, deviceInfo: string) => {
+  handleMessage = async (message: any, deviceInfo: string) => {
     const parts = message.content.split("#");
     const receivedDevice = parts[0];
     const receivedCommand = parts[1];
@@ -223,7 +240,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     switch (receivedCommand) {
       case "lockScreen":
         if (receivedDevice === deviceInfo) {
-          this.deviceService.lockCurrentDevice();
+          await this.deviceService.lockCurrentDevice();
         }
         break;
       case "exitSiyuan":
@@ -243,7 +260,12 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         break;
       case "triggerSync":
         if (receivedDevice === deviceInfo) {
-          this.deviceService.syncCurrentDevice();
+          await this.deviceService.syncCurrentDevice();
+        }
+        break;
+      case "setAutoPassword":
+        if (receivedDevice === deviceInfo) {
+          await this.deviceService.setCurrentDeviceAutoPassword(receivedContent);
         }
         break;
       default:
@@ -265,67 +287,84 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       this.settingUtils.get("displayNoticeWhenBarkNotiSent")
     );
 
-    // GoEasy service with message handler
-    this.goEasyService = new GoEasyService(
-      this.settingUtils.get("goeasyToken"),
-      this.handleMessage,
-      this.updateDeviceListFromPresence
-    );
+    const token = this.settingUtils.get("goeasyToken");
+    if (this.settingUtils.get("goeasySwitch")) {
+      if (token) {
+        // GoEasy service with message handler
+        this.goEasyService = new GoEasyService(
+          token,
+          this.handleMessage,
+          this.updateDeviceListFromPresence
+        );
+      } else {
+        showMessage(
+          this.i18n.name + ": " + this.i18n.goeasyTokenMissing,
+          5000,
+          "error"
+        );
+      }
+    }
+
+    if (
+      this.settingUtils.get("barkMsgSwitch") &&
+      !this.settingUtils.get("barkApiBaseLink")
+    ) {
+      showMessage(this.i18n.name + ": " + this.i18n.barkUrlMissing, 5000, "error");
+    }
 
     // device service
     this.deviceService = new DeviceService(
       this.goEasyService,
       () => this.onLockScreen() // this got to be callback bc ONLY this base plugin class can call lockScreen(this.app) somehow.
     );
+
     // connect to GoEasy
-    const deviceInfo = this.deviceService.getCurrentDeviceInfo();
-    this.goEasyService.connect(deviceInfo);
+    if (this.goEasyService) {
+      const deviceInfo = this.deviceService.getCurrentDeviceInfo();
+      this.goEasyService.connect(deviceInfo);
+    }
   }
 
   onLayoutReady() {
-    if (
-      this.settingUtils.get("mainSwitch") &&
-      this.settingUtils.get("goeasySwitch") &&
-      this.settingUtils.get("goeasyToken")
-    ) {
+    if (this.settingUtils.get("mainSwitch")) {
       this.initializeServices();
 
-      this.goEasyService.fetchOnlineDevices(() => {});
+      if (this.goEasyService) {
+        this.goEasyService.fetchOnlineDevices(() => {});
 
-      this.addDock({
-        config: {
-          position: "LeftBottom",
-          size: { width: 200, height: 0 },
-          icon: "iconDevices",
-          title: this.i18n.name,
-          hotkey: "⌥⌘M",
-        },
-        data: {
-          text: this.i18n.name,
-        },
-        type: DOCK_TYPE,
-        resize() {
-          console.log(DOCK_TYPE + " resize");
-        },
-        update() {
-          console.log(DOCK_TYPE + " update");
-        },
-        init: (dock) => {
-          dock.element.innerHTML = getDockHTML(this.isMobile, this);
-          this.updateOnlineDeviceList();
-          this.addRefreshButtonListener();
-          this.addBroadcastButtonListener();
-          this.addBroadcastClipboardButtonListener();
-        },
-        destroy() {
-          console.log("destroy dock:", DOCK_TYPE);
-        },
-      });
+        this.addDock({
+          config: {
+            position: "LeftBottom",
+            size: { width: 200, height: 0 },
+            icon: "iconDevices",
+            title: this.i18n.name,
+            hotkey: "⌥⌘M",
+          },
+          data: {
+            text: this.i18n.name,
+          },
+          type: DOCK_TYPE,
+          resize() {
+            console.log(DOCK_TYPE + " resize");
+          },
+          update() {
+            console.log(DOCK_TYPE + " update");
+          },
+          init: (dock) => {
+            dock.element.innerHTML = getDockHTML(this.isMobile, this);
+            this.updateOnlineDeviceList();
+            this.addRefreshButtonListener();
+            this.addBroadcastButtonListener();
+            this.addBroadcastClipboardButtonListener();
+          },
+          destroy() {
+            console.log("destroy dock:", DOCK_TYPE);
+          },
+        });
+      }
+
+      this.handleLayoutReadyAsync();
     }
-
-    this.settingUtils.load();
-
-    this.handleLayoutReadyAsync();
   }
 
   private async handleLayoutReadyAsync() {
@@ -357,8 +396,23 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   updateOnlineDeviceList() {
     this.goEasyService.fetchOnlineDevices((response) => {
       let deviceListHtml = "";
+      const onlineDeviceIds = response.content.members.map(m => m.id);
+
+      // Check for success of pending locks
+      for (const [deviceId, timeoutId] of this.pendingLocks.entries()) {
+        if (!onlineDeviceIds.includes(deviceId)) {
+          // Success! Device is gone from online list
+          clearTimeout(timeoutId);
+          this.pendingLocks.delete(deviceId);
+          showMessage(this.i18n.textLockSuccess);
+        }
+      }
+
       response.content.members.forEach((member) => {
-        // console.log("mem:", member.id);
+        const isLocking = this.pendingLocks.has(member.id);
+        const lockIcon = isLocking ? '<svg class="svg loading-icon"><use xlink:href="#iconRefresh"></use></svg>' : '<svg class="svg"><use xlink:href="#iconLock"></use></svg>';
+        const lockClass = isLocking ? "device-action lock-siyuan locking" : "device-action lock-siyuan";
+        
         deviceListHtml +=
           member.id == this.deviceService.getCurrentDeviceInfo() //local machine or not
             ? ` 
@@ -369,11 +423,12 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             </div>
             <div class="device-actions">
             <span class="device-action device-itsme b3-button b3-button--outline fn__flex-center" style="opacity: 0.8; pointer-events: none;"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${this.i18n.textLocalMachine}</span>
-            <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textLock}</button>
+            <button class="${lockClass} b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${lockIcon} ${this.i18n.textLock}</button>
             <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconQuit"></use></svg> ${this.i18n.textExit}</button>
-            <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconFeedback"></use></svg> ${this.i18n.textSendMessage}</button>
+            <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconEmail"></use></svg> ${this.i18n.textSendMessage}</button>
             <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${this.i18n.textSendToClipboard}</button>
             <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconCloud"></use></svg> ${this.i18n.textTriggerSync}</button>
+            <button class="device-action set-auto-password b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textSetAutoPassword}</button>
             </div>
           </div>
         `
@@ -384,11 +439,12 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <div class="device-uuid">${this.i18n.textDeviceUuid}${member.data.deviceUuid}</div>
             </div>
             <div class="device-actions">
-              <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textLock}</button>
+              <button class="${lockClass} b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${lockIcon} ${this.i18n.textLock}</button>
               <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconQuit"></use></svg> ${this.i18n.textExit}</button>
-              <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconFeedback"></use></svg> ${this.i18n.textSendMessage}</button>
+              <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconEmail"></use></svg> ${this.i18n.textSendMessage}</button>
               <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${this.i18n.textSendToClipboard}</button>
               <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconCloud"></use></svg> ${this.i18n.textTriggerSync}</button>
+              <button class="device-action set-auto-password b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textSetAutoPassword}</button>
 
 
             </div>
@@ -417,8 +473,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     if (sendBroadcastButton) {
       sendBroadcastButton.addEventListener("click", () => {
         this.inputDialog({
-          title: "发送广域消息",
-          placeholder: "例如：ping测试！",
+          title: this.i18n.textSendBroadcast,
+          placeholder: this.i18n.textSendBroadcastPlaceholder,
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -438,9 +494,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     if (sendBroadcastClipboardButton) {
       sendBroadcastClipboardButton.addEventListener("click", () => {
         this.inputDialog({
-          title: "发送广域剪贴板",
-          placeholder:
-            "这回发送给所有在线设备。请注意：如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          title: this.i18n.textSendBroadcastClipboard,
+          placeholder: this.i18n.textSendBroadcastClipboardPlaceholder,
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -469,6 +524,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           ? "send-clipboard"
           : target.classList.contains("trigger-sync")
           ? "trigger-sync"
+          : target.classList.contains("set-auto-password")
+          ? "set-auto-password"
           : null;
         if (deviceId && action) {
           this.performDeviceAction(deviceId, action);
@@ -480,7 +537,19 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   performDeviceAction(deviceId: string, action: string) {
     switch (action) {
       case "lock-siyuan":
+        if (this.pendingLocks.has(deviceId)) return;
+
+        const timeoutId = setTimeout(() => {
+          if (this.pendingLocks.has(deviceId)) {
+            this.pendingLocks.delete(deviceId);
+            showMessage(this.i18n.textLockFail, 10000, "error");
+            this.updateOnlineDeviceList();
+          }
+        }, 3000);
+
+        this.pendingLocks.set(deviceId, timeoutId);
         this.deviceService.lockDevice(deviceId);
+        this.updateOnlineDeviceList();
         break;
       case "exit-siyuan":
         this.deviceService.exitDevice(deviceId);
@@ -488,8 +557,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         break;
       case "send-human-msg":
         this.inputDialog({
-          title: "发送消息",
-          placeholder: "例如：别偷看我笔记！",
+          title: this.i18n.textSendMessage,
+          placeholder: this.i18n.textSendMessagePlaceholder,
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -501,9 +570,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         break;
       case "send-clipboard":
         this.inputDialog({
-          title: "发送到剪贴板",
-          placeholder:
-            "此将会发送内容到目标设备的剪贴板。请注意，如果目标设备没有剪贴板管理器，则你之前的剪贴板内容会被覆盖且无法找回。",
+          title: this.i18n.textSendToClipboard,
+          placeholder: this.i18n.textSendToClipboardPlaceholder,
           width: this.isMobile ? "95vw" : "70vw",
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
@@ -513,10 +581,41 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         });
         break;
       case "trigger-sync":
-        this.deviceService.triggerSync(deviceId + "#triggerSync#nullptr");
-
-      
+        this.deviceService.triggerSync(deviceId);
+        break;
+      case "set-auto-password":
+        this.passwordDoubleCheckDialog({
+          confirm: (password: string) => {
+            this.savePasswordToHistory(deviceId, password);
+            this.deviceService.setAutoPassword(deviceId, password);
+          },
+        });
+        break;
     }
+  }
+
+  savePasswordToHistory(deviceId: string, password: string) {
+    const history = this.settingUtils.get("passwordHistory") || "";
+    const date = new Date().toLocaleString();
+    const newEntry = `[${date}] ${deviceId}: ${password}`;
+    const newHistory = history ? history + "\n" + newEntry : newEntry;
+    this.settingUtils.assignValue("passwordHistory", newHistory);
+    this.settingUtils.save();
+  }
+
+  showPasswordHistoryDialog() {
+    const history = this.settingUtils.get("passwordHistory") || this.i18n.textNoPasswordHistory;
+    const dialog = new Dialog({
+      title: this.i18n.textPasswordHistoryTitle,
+      content: `<div class="b3-dialog__content">
+        <textarea class="b3-text-field fn__block" readonly style="height: 300px; font-family: monospace;">${history}</textarea>
+      </div>
+      <div class="b3-dialog__action">
+        <button class="b3-button b3-button--text">${window.siyuan.languages.confirm}</button>
+      </div>`,
+      width: this.isMobile ? "95vw" : "600px",
+    });
+    dialog.element.querySelector(".b3-button").addEventListener("click", () => dialog.destroy());
   }
 
   onLockScreen() {
@@ -531,14 +630,66 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
   uninstall() {}
 
+  passwordDoubleCheckDialog = (args: {
+    confirm?: (password: string) => void;
+    cancel?: () => void;
+  }) => {
+    const dialog = new Dialog({
+      title: this.i18n.textSetAutoPassword,
+      content: `<div class="b3-dialog__content">
+      <div class="ft__breakword" style="margin-bottom: 12px;">
+        <div style="margin-bottom: 8px; opacity: 0.8;">${this.i18n.textSetAutoPasswordPlaceholder}</div>
+        <textarea class="b3-text-field fn__block" id="pwdInput1" style="height: 80px;" placeholder="${this.i18n.textSetAutoPassword}"></textarea>
+      </div>
+      <div class="ft__breakword">
+        <div style="margin-bottom: 8px; opacity: 0.8;">${this.i18n.textSetAutoPasswordConfirmPlaceholder}</div>
+        <textarea class="b3-text-field fn__block" id="pwdInput2" style="height: 80px;" placeholder="${this.i18n.textSetAutoPasswordConfirm}"></textarea>
+      </div>
+  </div>
+  <div class="b3-dialog__action">
+      <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+      <button class="b3-button b3-button--text" id="confirmPwdBtn">${window.siyuan.languages.confirm}</button>
+  </div>`,
+      width: this.isMobile ? "95vw" : "520px",
+    });
+
+    const pwdInput1: HTMLTextAreaElement = dialog.element.querySelector("#pwdInput1");
+    const pwdInput2: HTMLTextAreaElement = dialog.element.querySelector("#pwdInput2");
+    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+
+    btnsElement[0].addEventListener("click", () => {
+      if (args?.cancel) args.cancel();
+      dialog.destroy();
+    });
+
+    btnsElement[1].addEventListener("click", () => {
+      if (pwdInput1.value === pwdInput2.value) {
+        if (args?.confirm) args.confirm(pwdInput1.value);
+        dialog.destroy();
+      } else {
+        showMessage(this.i18n.textPasswordMismatch, 5000, "error");
+      }
+    });
+
+    setTimeout(() => pwdInput1.focus(), 100);
+  };
+
   async currentDeviceInList() {
     try {
       var current_device_info = await this.deviceService.getCurrentDeviceInfo();
 
+      console.log(current_device_info);
+
       var enableDeviceList = await this.settingUtils.get("enableDeviceList");
+
+      console.log(enableDeviceList);
+
       var enableDeviceListArray = enableDeviceList.split("\n");
 
+      console.log(enableDeviceListArray);
+
       return enableDeviceListArray.includes(current_device_info);
+
     } catch (error) {
       console.error("Error checking if current device is enabled:", error);
     }
@@ -617,9 +768,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     const dialog = new Dialog({
       title: args.title,
       content: `<div class="b3-dialog__content">
-      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder=${
+      <div class="ft__breakword"><textarea class="b3-text-field fn__block" style="height: ${inputBoxHeight};" placeholder="${
         args?.placeholder ?? ""
-      }>${args?.defaultText ?? ""}</textarea></div>
+      }">${args?.defaultText ?? ""}</textarea></div>
   </div>
   <div class="b3-dialog__action">
       <button class="b3-button b3-button--cancel">${
