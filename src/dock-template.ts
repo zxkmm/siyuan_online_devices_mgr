@@ -86,9 +86,9 @@ export function getDockHTML(
 
   const content = `
     <div class="dock-content">
-      <button id="refreshDeviceList" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textRefresh}</button>
-      <button id="sendBroadcast" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textSendBroadcast}</button>
-      <button id="sendBroadcastClipboard" class="wide-button b3-button b3-button--outline fn__flex-center">${_instance_.i18n.textSendBroadcastClipboard}</button>
+      <button id="refreshDeviceList" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconRefresh"></use></svg> ${_instance_.i18n.textRefresh}</button>
+      <button id="sendBroadcast" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconGlobe"></use></svg> ${_instance_.i18n.textSendBroadcast}</button>
+      <button id="sendBroadcastClipboard" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${_instance_.i18n.textSendBroadcastClipboard}</button>
 
       <div class="device-list" id="onlineDeviceList">
         Loading...

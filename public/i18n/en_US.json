@@ -34,19 +34,19 @@
   "barkMsgSwitch": "Send Device Online Notification via Bark",
   "barkMsgSwitchDesc": "This feature requires you to correctly fill in the GoEasy webhook baselink.",
 
-  "textRefresh": "🔄 Refresh",
-  "textSendBroadcast": "📣 Send Broadcast Message",
-  "textSendBroadcastClipboard": "📚 Send Broadcast Clipboard",
+  "textRefresh": "Refresh",
+  "textSendBroadcast": "Send Broadcast Message",
+  "textSendBroadcastClipboard": "Send Broadcast Clipboard",
 
   "textDeviceName": "Device Name: ",
   "textDeviceUuid": "Device UUID: ",
-  "textLocalMachine": "📱💻 Local Machine",
+  "textLocalMachine": "Local Machine",
 
-  "textLock": "🔒 Lock",
-  "textExit": "❎ Exit",
-  "textSendMessage": "📢 Send Message",
-  "textSendToClipboard": "📋 Send to Clipboard",
-  "textTriggerSync": "🔄 Trigger Sync",
+  "textLock": "Lock",
+  "textExit": "Exit",
+  "textSendMessage": "Send Message",
+  "textSendToClipboard": "Send to Clipboard",
+  "textTriggerSync": "Trigger Sync",
 
   "name":"Online Devices Manager",
 

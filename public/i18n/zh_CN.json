@@ -34,19 +34,19 @@
   "barkMsgSwitch": "用Bark发送设备上线通知",
   "barkMsgSwitchDesc": "该功能需要你正确填写goeasy的webhook baselink; 如果不需要上线通知功能，则不需要启用和填写。",
 
-  "textRefresh": "🔄 刷新",
-  "textSendBroadcast": "📣 发送广域消息",
-  "textSendBroadcastClipboard": "📚 发送广域剪贴板",
+  "textRefresh": "刷新",
+  "textSendBroadcast": "发送广域消息",
+  "textSendBroadcastClipboard": "发送广域剪贴板",
 
   "textDeviceName": "设备名： ",
   "textDeviceUuid": "设备UUID： ",
-  "textLocalMachine": "📱💻 本机",
+  "textLocalMachine": "本机",
 
-  "textLock": "🔒 锁定",
-  "textExit": "❎ 退出",
-  "textSendMessage": "📢 发消息",
-  "textSendToClipboard": "📋 发送剪贴板",
-  "textTriggerSync": "🔄 触发同步",
+  "textLock": "锁定",
+  "textExit": "退出",
+  "textSendMessage": "发消息",
+  "textSendToClipboard": "发送剪贴板",
+  "textTriggerSync": "触发同步",
 
   "name":"在线设备管理",
 

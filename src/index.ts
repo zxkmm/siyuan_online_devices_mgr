@@ -368,12 +368,12 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <div class="device-uuid">${this.i18n.textDeviceUuid}${member.data.deviceUuid}</div>
             </div>
             <div class="device-actions">
-            <span class="device-action device-itsme b3-button b3-button--outline fn__flex-center" style="opacity: 0.8; pointer-events: none;">${this.i18n.textLocalMachine}</span>
-            <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textLock}</button>
-            <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textExit}</button>
-            <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendMessage}</button>
-            <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textSendToClipboard}</button>
-            <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;">${this.i18n.textTriggerSync}</button>
+            <span class="device-action device-itsme b3-button b3-button--outline fn__flex-center" style="opacity: 0.8; pointer-events: none;"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${this.i18n.textLocalMachine}</span>
+            <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textLock}</button>
+            <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconQuit"></use></svg> ${this.i18n.textExit}</button>
+            <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconFeedback"></use></svg> ${this.i18n.textSendMessage}</button>
+            <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${this.i18n.textSendToClipboard}</button>
+            <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}" style="display: none;"><svg class="svg"><use xlink:href="#iconCloud"></use></svg> ${this.i18n.textTriggerSync}</button>
             </div>
           </div>
         `
@@ -384,11 +384,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <div class="device-uuid">${this.i18n.textDeviceUuid}${member.data.deviceUuid}</div>
             </div>
             <div class="device-actions">
-              <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textLock}</button>
-              <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textExit}</button>
-              <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendMessage}</button>
-              <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textSendToClipboard}</button>
-              <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${this.i18n.textTriggerSync}</button>
+              <button class="device-action lock-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textLock}</button>
+              <button class="device-action exit-siyuan b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconQuit"></use></svg> ${this.i18n.textExit}</button>
+              <button class="device-action send-human-msg b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconFeedback"></use></svg> ${this.i18n.textSendMessage}</button>
+              <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${this.i18n.textSendToClipboard}</button>
+              <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconCloud"></use></svg> ${this.i18n.textTriggerSync}</button>
 
 
             </div>
