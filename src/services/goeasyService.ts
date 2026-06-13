@@ -1,18 +1,26 @@
 import GoEasy from "goeasy-lite";
+import { encrypt, decrypt } from "./cryptoService";
+import { showMessage } from "siyuan";
 
 export class GoEasyService {
   private goeasy: any;
   private handleMessage: (message: any, deviceInfo: string) => void;
   private updateDeviceListFromPresence: (presenceEvent: any) => void;
-  
+  private encryptionPassword: string;
+  private decryptFailNotice: string;
+
   constructor(
-    apiToken: string, 
+    apiToken: string,
+    encryptionPassword: string,
     handleMessageCallback: (message: any, deviceInfo: string) => void,
-    updateDeviceListCallback: (presenceEvent: any) => void
+    updateDeviceListCallback: (presenceEvent: any) => void,
+    decryptFailNotice: string
   ) {
     this.handleMessage = handleMessageCallback;
     this.updateDeviceListFromPresence = updateDeviceListCallback;
-    
+    this.encryptionPassword = encryptionPassword;
+    this.decryptFailNotice = decryptFailNotice;
+
     this.goeasy = GoEasy.getInstance({
       host: "hangzhou.goeasy.io",
       appkey: apiToken,
@@ -52,7 +60,16 @@ export class GoEasyService {
       presence: { enable: true },
       onMessage: (message) => {
         console.log("Channel:" + message.channel + " content:" + message.content);
-        this.handleMessage(message, deviceInfo);
+        let decryptedContent: string;
+        try {
+          decryptedContent = decrypt(message.content, this.encryptionPassword);
+        } catch (error) {
+          console.error("Failed to decrypt message:", error);
+          showMessage(this.decryptFailNotice, 5000, "error");
+          return;
+        }
+        const decryptedMessage = { ...message, content: decryptedContent };
+        this.handleMessage(decryptedMessage, deviceInfo);
       },
       onSuccess: function () {
         console.log("Channel订阅成功。");
@@ -107,9 +124,10 @@ export class GoEasyService {
   }
 
   sendMessage(message: string) {
+    const encrypted = encrypt(message, this.encryptionPassword);
     this.goeasy.pubsub.publish({
       channel: "online_devices",
-      message: message,
+      message: encrypted,
       onSuccess: function () {
         console.log("消息发布成功。");
       },

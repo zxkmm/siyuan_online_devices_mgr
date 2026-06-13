@@ -31,6 +31,11 @@
   "goeasyToken": "GoEasy Token",
   "goeasyTokenDesc": "请参考如下链接获取token：<a href='https://ld246.com/article/1726244008032'>链接</a>",
 
+  "encryptionPassword": "加密密码",
+  "encryptionPasswordDesc": "必填。经由 GoEasy 的消息会以此密码进行端到端加密（AES-256，密钥经 PBKDF2 派生），因此 GoEasy 只能看到密文。您必须在每一个需要被远程操控的设备上填写完全相同的密码。该密码仅保存在本地思源中，不会传输给 GoEasy。如果您开启了思源同步，本插件的设置（包括此密码）会自动在各设备间同步，因此通常只需在一台设备上设置一次即可。若留空，在线设备管理功能将不会运行。",
+  "encryptionPasswordMissing": "请先设置加密密码（在所有设备上必须一致）。",
+  "decryptFail": "解密收到的消息失败（本机加密密码与发送方不一致，或数据已损坏）。已忽略该消息。",
+
   "barkMsgSwitch": "用Bark发送设备上线通知",
   "barkMsgSwitchDesc": "该功能需要你正确填写goeasy的webhook baselink; 如果不需要上线通知功能，则不需要启用和填写。",
 

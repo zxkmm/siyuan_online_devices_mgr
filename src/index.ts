@@ -119,6 +119,20 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     });
 
     this.settingUtils.addItem({
+      key: "encryptionPassword",
+      value: "",
+      type: "textinput",
+      title: this.i18n.encryptionPassword,
+      description: this.i18n.encryptionPasswordDesc,
+      action: {
+        // Called when focus is lost and content changes
+        callback: () => {
+          this.settingUtils.takeAndSave("encryptionPassword");
+        },
+      },
+    });
+
+    this.settingUtils.addItem({
       key: "barkMsgSwitch",
       value: false,
       type: "checkbox",
@@ -288,14 +302,25 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     );
 
     const token = this.settingUtils.get("goeasyToken");
+    const encryptionPassword = this.settingUtils.get("encryptionPassword");
     if (this.settingUtils.get("goeasySwitch")) {
       if (token) {
-        // GoEasy service with message handler
-        this.goEasyService = new GoEasyService(
-          token,
-          this.handleMessage,
-          this.updateDeviceListFromPresence
-        );
+        if (encryptionPassword) {
+          // GoEasy service with message handler (messages are end-to-end encrypted)
+          this.goEasyService = new GoEasyService(
+            token,
+            encryptionPassword,
+            this.handleMessage,
+            this.updateDeviceListFromPresence,
+            this.i18n.decryptFail
+          );
+        } else {
+          showMessage(
+            this.i18n.name + ": " + this.i18n.encryptionPasswordMissing,
+            5000,
+            "error"
+          );
+        }
       } else {
         showMessage(
           this.i18n.name + ": " + this.i18n.goeasyTokenMissing,

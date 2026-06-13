@@ -31,6 +31,11 @@
   "goeasyToken": "GoEasy Token",
   "goeasyTokenDesc": "Please refer to the following link to obtain the token: <a href='https://ld246.com/article/1726244008032'>Link</a>",
 
+  "encryptionPassword": "Encryption Password",
+  "encryptionPasswordDesc": "Mandatory. Messages sent through GoEasy are end-to-end encrypted with this password (AES-256, derived via PBKDF2), so GoEasy can only ever see ciphertext. You MUST use the exact same password on every device you want to control. The password is stored locally in SiYuan only and is never transmitted to GoEasy. If you have SiYuan sync enabled, this plugin setting (including this password) is automatically synced across your devices, so you usually only need to set it once. If left empty, the online device management feature will not run.",
+  "encryptionPasswordMissing": "Please set the Encryption Password first (it must match across all your devices).",
+  "decryptFail": "Failed to decrypt a received message (the encryption password does not match the sender's, or the data is corrupted). The message was ignored.",
+
   "barkMsgSwitch": "Send Device Online Notification via Bark",
   "barkMsgSwitchDesc": "This feature requires you to correctly fill in the GoEasy webhook baselink.",
 
