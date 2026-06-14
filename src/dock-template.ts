@@ -123,24 +123,73 @@ export function getDockHTML(
         flex: 0 0 auto;
       }
       .snippet-picker-item {
+        position: relative;
         display: flex;
         flex-direction: column;
         gap: 4px;
         width: 100%;
         text-align: left;
-        padding: 8px;
+        padding: 10px 12px;
+        min-height: 96px;
+        overflow: hidden;
+        /* backdrop color for the title strip; tracks the item's own background
+           so it stays in sync on hover instead of looking like a hole */
+        --snippet-backdrop: var(--b3-theme-background);
+      }
+      .snippet-picker-item:hover {
+        --snippet-backdrop: var(--b3-theme-background-light);
       }
       .snippet-picker-item .snippet-picker-name {
+        position: relative;
+        z-index: 2;
         font-weight: bold;
+        font-size: 18px;
+        /* fade a backdrop in behind the title so the bold text stays readable
+           over the code preview underneath */
+        background: linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--snippet-backdrop) 0%, transparent) 0%,
+          color-mix(in srgb, var(--snippet-backdrop) 55%, transparent) 45%,
+          color-mix(in srgb, var(--snippet-backdrop) 72%, transparent) 100%
+        );
+        padding: 2px 0 4px;
       }
       .snippet-picker-item .snippet-picker-preview {
-        opacity: 0.6;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1;
+        opacity: 0.42;
         font-family: monospace;
         font-size: 12px;
+        line-height: 1.45;
         white-space: pre-wrap;
         word-break: break-all;
-        max-height: 4em;
-        overflow: hidden;
+        padding: 14px 12px 10px;
+        pointer-events: none;
+        user-select: none;
+        /* fade the code out at top (under the title) and bottom so it never
+           looks hard-clipped, no overflow-hidden text cutoff needed */
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          transparent 0%,
+          rgba(0, 0, 0, 0.55) 18%,
+          #000 38%,
+          #000 62%,
+          rgba(0, 0, 0, 0.55) 82%,
+          transparent 100%
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          transparent 0%,
+          rgba(0, 0, 0, 0.55) 18%,
+          #000 38%,
+          #000 62%,
+          rgba(0, 0, 0, 0.55) 82%,
+          transparent 100%
+        );
       }
     </style>
   `;
@@ -151,6 +200,7 @@ export function getDockHTML(
       <button id="sendBroadcast" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconEmail"></use></svg> ${_instance_.i18n.textSendBroadcast}</button>
       <button id="sendBroadcastClipboard" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${_instance_.i18n.textSendBroadcastClipboard}</button>
       <button id="manageSnippets" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${_instance_.i18n.textManageSnippets}</button>
+      <button id="viewDisclaimer" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconInfo"></use></svg> ${_instance_.i18n.viewDisclaimerLabel}</button>
 
       <div class="device-list" id="onlineDeviceList">
         Loading...

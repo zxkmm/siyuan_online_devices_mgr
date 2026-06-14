@@ -20,6 +20,23 @@ const STORAGE_NAME = "menu-config";
 const DOCK_TYPE = "dock_tab";
 var already_noticed_this_boot = false;
 
+/**
+ * Bump this whenever the legal text (i18n disclaimerBody) changes meaningfully.
+ * Stored per-install alongside the user's acceptance; a mismatch re-prompts the
+ * disclaimer dialog before any feature (incl. the remote code-snippet runner)
+ * can start. See `disclaimerAccepted()` / `onLayoutReady()`.
+ *
+ * v2 (2026-06): substantially expanded — added GPL/no-warranty, free-software &
+ * donations, scoped liability limitation preserving the PRC statutory floor
+ * (民法典 §506), author/SiYuan not-responsible clause, and the consent-state-
+ * is-editable / technical-inference-of-prior-consent items.
+ * v3 (2026-06): briefly added a "Rules of Interpretation" item; withdrawn.
+ * v4 (2026-06): item 13 now covers software defects / supply-chain / open-source
+ * acceptance (no-warranty of bugs/backdoors/malicious code in the plugin or its
+ * dependencies; GPL open-source = download implies acceptance of code quality).
+ */
+const DISCLAIMER_VERSION = 4;
+
 interface CodeSnippet {
   id: string;
   name: string;
@@ -87,6 +104,39 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       type: "hint",
       title: this.i18n.warningTitle,
       description: this.i18n.warningDesc,
+    });
+
+    this.settingUtils.addItem({
+      key: "viewDisclaimer",
+      value: "",
+      type: "button",
+      title: this.i18n.disclaimerTitle,
+      description: this.i18n.disclaimerNotAcceptedDesc,
+      button: {
+        label: this.i18n.viewDisclaimerLabel,
+        callback: () => {
+          this.showDisclaimerDialog({ mustAcceptToContinue: false });
+        },
+      },
+    });
+
+    // Consent state for the disclaimer gate (see onLayoutReady/disclaimerAccepted).
+    // Default 0 so the dialog always shows on a fresh install.
+    this.settingUtils.addItem({
+      key: "disclaimerAcceptedVersion",
+      value: 0,
+      type: "custom",
+      title: "",
+      description: "",
+      createElement: () => {
+        const el = document.createElement("div");
+        el.style.display = "none";
+        return el;
+      },
+      getEleVal: () => this.settingUtils.get("disclaimerAcceptedVersion"),
+      setEleVal: (_ele: HTMLElement, val: any) => {
+        void val;
+      },
     });
 
     this.settingUtils.addItem({
@@ -500,6 +550,50 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   }
 
   onLayoutReady() {
+    // Disclaimer consent gate. Block EVERYTHING below (GoEasy connect, dock,
+    // and crucially the remote code-snippet runner) until the user has accepted
+    // the current version of the disclaimer. Re-prompts whenever the legal text
+    // version changes (DISCLAIMER_VERSION mismatch), per the user's choice.
+    if (!this.disclaimerAccepted()) {
+      this.showDisclaimerDialog({ mustAcceptToContinue: true }).then(
+        (accepted) => {
+          if (accepted) {
+            this.settingUtils.setAndSave(
+              "disclaimerAcceptedVersion",
+              DISCLAIMER_VERSION
+            );
+            this.maybeInitMainFeature();
+          } else {
+            showMessage(
+              this.i18n.disclaimerNotAcceptedDesc,
+              7000,
+              "info"
+            );
+          }
+        }
+      );
+      return;
+    }
+    this.maybeInitMainFeature();
+  }
+
+  /**
+   * True iff the user has accepted the *current* version of the disclaimer.
+   * A version mismatch (e.g. after a legal-text update) returns false and
+   * triggers a fresh consent prompt in onLayoutReady().
+   */
+  private disclaimerAccepted(): boolean {
+    return (
+      this.settingUtils.get("disclaimerAcceptedVersion") === DISCLAIMER_VERSION
+    );
+  }
+
+  /**
+   * The main-feature init path, gated behind disclaimer consent.
+   * Extracted verbatim from the original onLayoutReady() body so behaviour for
+   * already-consenting users is unchanged.
+   */
+  private maybeInitMainFeature() {
     if (this.settingUtils.get("mainSwitch")) {
       this.initializeServices();
 
@@ -531,6 +625,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             this.addBroadcastButtonListener();
             this.addBroadcastClipboardButtonListener();
             this.addManageSnippetsButtonListener();
+            this.addViewDisclaimerButtonListener();
           },
           destroy() {
             console.log("destroy dock:", DOCK_TYPE);
@@ -539,6 +634,75 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       }
 
       this.handleLayoutReadyAsync();
+    }
+  }
+
+  /**
+   * Reusable disclaimer dialog.
+   * - mustAcceptToContinue=true: gate mode (first run / version mismatch).
+   *   Resolves true on Accept (caller persists the version + inits the feature),
+   *   false on Decline/close (feature stays disabled).
+   * - mustAcceptToContinue=false: re-view mode (dock/settings "View" button).
+   *   Read-only; re-accepting is a harmless no-op since the stored version is
+   *   already current.
+   */
+  showDisclaimerDialog = (opts: {
+    mustAcceptToContinue: boolean;
+  }): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      const finish = (accepted: boolean) => {
+        if (settled) return;
+        settled = true;
+        dialog.destroy();
+        resolve(accepted);
+      };
+
+      const dialog = new Dialog({
+        title: this.i18n.disclaimerTitle,
+        content: `<div class="b3-dialog__content" style="max-height: 60vh; overflow-y: auto;">${this.i18n.disclaimerBody}</div>
+        <div class="b3-dialog__action" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+            <input type="checkbox" id="disclaimerAcceptCheckbox" style="width: 18px; height: 18px;" />
+            <span>${this.i18n.disclaimerAcceptLabel}</span>
+          </label>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="b3-button b3-button--cancel">${this.i18n.disclaimerDeclineBtn}</button>
+            <button class="b3-button b3-button--text" id="disclaimerAcceptBtn" disabled>${this.i18n.disclaimerAcceptBtn}</button>
+          </div>
+        </div>`,
+        width: this.isMobile ? "95vw" : "640px",
+        // Disallow closing via the close icon in gate mode so the user must
+        // explicitly choose Accept or Decline. In re-view mode closing is fine.
+        hideCloseIcon: opts.mustAcceptToContinue,
+      });
+
+      const checkbox: HTMLInputElement =
+        dialog.element.querySelector("#disclaimerAcceptCheckbox");
+      const acceptBtn: HTMLButtonElement =
+        dialog.element.querySelector("#disclaimerAcceptBtn");
+      const cancelBtn: HTMLButtonElement = dialog.element.querySelector(
+        ".b3-button--cancel"
+      );
+
+      checkbox?.addEventListener("change", () => {
+        if (acceptBtn) acceptBtn.disabled = !checkbox.checked;
+      });
+
+      acceptBtn?.addEventListener("click", () => {
+        if (checkbox?.checked) finish(true);
+      });
+      cancelBtn?.addEventListener("click", () => finish(false));
+    });
+  };
+
+  addViewDisclaimerButtonListener() {
+    const btn = document.getElementById("viewDisclaimer");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        // Re-view mode: read-only, no gate effect.
+        this.showDisclaimerDialog({ mustAcceptToContinue: false });
+      });
     }
   }
 
@@ -847,6 +1011,42 @@ return res?.[0]?.total ?? res;`,
 return await request("/api/query/sql", {
   stmt: "SELECT id, hpath FROM blocks WHERE type = 'd' ORDER BY updated DESC LIMIT 10"
 });`,
+      },
+      {
+        id: "example-open-calculator",
+        name: this.i18n.exampleNameOpenCalculator,
+        code: `// Opens the Calculator app on the remote device (cross-platform).
+// Demonstrates reaching Node from SiYuan's Electron renderer via window.require.
+// Desktop-only: on mobile/browser/dock-window frontends window.require is absent.
+if (typeof window.require !== "function") {
+  return {
+    ok: false,
+    error: "Node bridge (window.require) is not available on this frontend. "
+         + "Run this on SiYuan Desktop (Electron) on the remote device.",
+  };
+}
+const { spawn } = window.require("child_process");
+const os = window.require("os");
+const platform = os.platform(); // "darwin" | "win32" | "linux"
+const commands = {
+  darwin: ["open", "-a", "Calculator"],
+  win32:  ["cmd.exe", "/c", "start", "", "calc"],
+  linux:  ["xdg-open", "/usr/share/applications/org.gnome.Calculator.desktop"],
+};
+const cmd = commands[platform];
+if (!cmd) {
+  return { ok: false, error: "Unsupported platform: " + platform };
+}
+// Detached + unref so the child neither blocks the snippet nor keeps SiYuan alive.
+const child = spawn(cmd[0], cmd.slice(1), { detached: true, stdio: "ignore" });
+child.unref();
+return {
+  ok: true,
+  platform,
+  command: cmd.join(" "),
+  pid: child.pid,
+  note: "Calculator launch requested; the window should appear on the remote desktop shortly.",
+};`,
       },
     ];
   }
