@@ -12,6 +12,7 @@ import { SettingUtils } from "./libs/setting-utils";
 import { getDockHTML } from "./dock-template";
 import { GoEasyService } from "./services/goeasyService";
 import { DeviceService } from "./services/deviceService";
+import { SNIPPET_RUNNER_VERSION } from "./services/deviceService";
 import { NotificationService } from "./services/notificationService";
 import { ClipboardService } from "./services/clipboardService";
 
@@ -19,12 +20,25 @@ const STORAGE_NAME = "menu-config";
 const DOCK_TYPE = "dock_tab";
 var already_noticed_this_boot = false;
 
+interface CodeSnippet {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface PendingSnippetRun {
+  resolve: (result: any) => void;
+  reject: (error: any) => void;
+  timeoutId: any;
+}
+
 export default class SiyuanOnlineDeviceManager extends Plugin {
   private goEasyService: GoEasyService;
   private deviceService: DeviceService;
   private notificationService: NotificationService;
   private clipboardService: ClipboardService;
   private pendingLocks: Map<string, any> = new Map();
+  private pendingSnippetRuns: Map<string, PendingSnippetRun> = new Map();
 
   // customTab: () => IModel;
   private isMobile: boolean;
@@ -237,6 +251,40 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       },
     });
     this.settingUtils.addItem({
+      key: "codeSnippets",
+      value: [],
+      type: "custom",
+      title: this.i18n.textManageSnippets,
+      description: this.i18n.textManageSnippetsDesc,
+      createElement: (_currentVal: any) => {
+        const hint = document.createElement("div");
+        hint.className = "b3-label fn__flex-center";
+        hint.innerHTML = this.i18n.textManageSnippetsSettingHint;
+        return hint;
+      },
+      getEleVal: () => this.settingUtils.get("codeSnippets"),
+      setEleVal: (_ele: HTMLElement, val: any) => {
+        /* value is managed via the dock UI; nothing to render here */
+        void val;
+      },
+    });
+    this.settingUtils.addItem({
+      key: "codeSnippetsSeeded",
+      value: false,
+      type: "custom",
+      title: "",
+      description: "",
+      createElement: () => {
+        const el = document.createElement("div");
+        el.style.display = "none";
+        return el;
+      },
+      getEleVal: () => this.settingUtils.get("codeSnippetsSeeded"),
+      setEleVal: (_ele: HTMLElement, val: any) => {
+        void val;
+      },
+    });
+    this.settingUtils.addItem({
       key: "Hint",
       value: "",
       type: "hint",
@@ -246,10 +294,21 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   }
 
   handleMessage = async (message: any, deviceInfo: string) => {
-    const parts = message.content.split("#");
-    const receivedDevice = parts[0];
-    const receivedCommand = parts[1];
-    const receivedContent = parts[2];
+    // Format: <targetDevice>#<command>#<content>
+    // `content` may itself contain '#' (e.g. JSON payloads or arbitrary code),
+    // so split only into the first three parts and keep the rest of `content` intact.
+    const firstHash = message.content.indexOf("#");
+    const secondHash = message.content.indexOf("#", firstHash + 1);
+    const receivedDevice =
+      firstHash >= 0 ? message.content.substring(0, firstHash) : "";
+    const receivedCommand =
+      firstHash >= 0 && secondHash > firstHash
+        ? message.content.substring(firstHash + 1, secondHash)
+        : firstHash >= 0
+        ? message.content.substring(firstHash + 1)
+        : "";
+    const receivedContent =
+      secondHash >= 0 ? message.content.substring(secondHash + 1) : "";
 
     switch (receivedCommand) {
       case "lockScreen":
@@ -280,6 +339,96 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       case "setAutoPassword":
         if (receivedDevice === deviceInfo) {
           await this.deviceService.setCurrentDeviceAutoPassword(receivedContent);
+        }
+        break;
+      case "runSnippet":
+        if (receivedDevice === deviceInfo) {
+          try {
+            const payload = JSON.parse(receivedContent);
+            console.log(
+              `[snippet-run] received request id=${payload.id} requesterRunnerVersion=${payload.localRunnerVersion} localRunnerVersion=${SNIPPET_RUNNER_VERSION}`
+            );
+            let ok = true;
+            let result: any = null;
+            let error: string = null;
+            try {
+              result = await this.deviceService.runCodeOnCurrentDevice(
+                payload.code
+              );
+            } catch (e) {
+              ok = false;
+              error = e?.message ?? String(e);
+              console.error(`[snippet-run] execution failed id=${payload.id}:`, e);
+            }
+            console.log(
+              `[snippet-run] sending response id=${payload.id} ok=${ok} runnerVersion=${SNIPPET_RUNNER_VERSION}`
+            );
+            // Deliver the result. sendMessage auto-chunks transparently if the
+            // encrypted form is too large for a single GoEasy message, so the full
+            // result is always delivered intact — no data loss, no truncation.
+            const resultJson = JSON.stringify({
+              id: payload.id,
+              ok,
+              result: ok ? result : null,
+              error,
+              runnerVersion: SNIPPET_RUNNER_VERSION,
+            });
+            try {
+              await this.goEasyService.sendMessage(
+                payload.from + "#snippetResult#" + resultJson
+              );
+            } catch (e) {
+              console.error(
+                `[snippet-run] could not deliver response id=${payload.id}, sending fallback error`,
+                e
+              );
+              // Fallback: a trimmed error always fits a single message.
+              const fallbackJson = JSON.stringify({
+                id: payload.id,
+                ok: false,
+                result: null,
+                error:
+                  "Could not deliver the result via GoEasy (publish failed). The remote device may be offline or the snippet took too long.",
+                runnerVersion: SNIPPET_RUNNER_VERSION,
+              });
+              try {
+                await this.goEasyService.sendMessage(
+                  payload.from + "#snippetResult#" + fallbackJson
+                );
+              } catch (e2) {
+                console.error(
+                  `[snippet-run] fallback error delivery also failed id=${payload.id}`,
+                  e2
+                );
+              }
+            }
+          } catch (e) {
+            console.error("Failed to handle runSnippet message:", e);
+          }
+        }
+        break;
+      case "snippetResult":
+        try {
+          const payload = JSON.parse(receivedContent);
+          const pending = this.pendingSnippetRuns.get(payload.id);
+          if (pending) {
+            clearTimeout(pending.timeoutId);
+            this.pendingSnippetRuns.delete(payload.id);
+            if (payload.ok) {
+              pending.resolve({
+                result: payload.result,
+                runnerVersion: payload.runnerVersion,
+              });
+            } else {
+              pending.reject(
+                Object.assign(new Error(payload.error), {
+                  runnerVersion: payload.runnerVersion,
+                })
+              );
+            }
+          }
+        } catch (e) {
+          console.error("Failed to handle snippetResult message:", e);
         }
         break;
       default:
@@ -381,6 +530,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             this.addRefreshButtonListener();
             this.addBroadcastButtonListener();
             this.addBroadcastClipboardButtonListener();
+            this.addManageSnippetsButtonListener();
           },
           destroy() {
             console.log("destroy dock:", DOCK_TYPE);
@@ -470,6 +620,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
               <button class="device-action send-clipboard b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${this.i18n.textSendToClipboard}</button>
               <button class="device-action trigger-sync b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconCloud"></use></svg> ${this.i18n.textTriggerSync}</button>
               <button class="device-action set-auto-password b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconLock"></use></svg> ${this.i18n.textSetAutoPassword}</button>
+              <button class="device-action run-snippet b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${this.i18n.textRunSnippet}</button>
 
 
             </div>
@@ -533,11 +684,25 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     }
   }
 
+  addManageSnippetsButtonListener() {
+    const manageButton = document.getElementById("manageSnippets");
+    if (manageButton) {
+      manageButton.addEventListener("click", async () => {
+        await this.seedOfficialExamplesIfFirstRun();
+        this.showManageSnippetsDialog();
+      });
+    }
+  }
+
   addDeviceActionListeners() {
     const actionButtons = document.querySelectorAll(".device-action");
     actionButtons.forEach((button) => {
       button.addEventListener("click", (e) => {
-        const target = e.target as HTMLElement;
+        // Resolve the actual button even if the click landed on the inner <svg>/<use>
+        const target = (e.target as HTMLElement).closest(
+          ".device-action"
+        ) as HTMLElement;
+        if (!target) return;
         const deviceId = target.getAttribute("data-device-id");
         const action = target.classList.contains("lock-siyuan")
           ? "lock-siyuan"
@@ -551,6 +716,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           ? "trigger-sync"
           : target.classList.contains("set-auto-password")
           ? "set-auto-password"
+          : target.classList.contains("run-snippet")
+          ? "run-snippet"
           : null;
         if (deviceId && action) {
           this.performDeviceAction(deviceId, action);
@@ -616,6 +783,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           },
         });
         break;
+      case "run-snippet":
+        this.showSnippetPickerDialog(deviceId, (did, snippet) =>
+          this.runSnippetOnDevice(did, snippet)
+        );
+        break;
     }
   }
 
@@ -626,6 +798,78 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     const newHistory = history ? history + "\n" + newEntry : newEntry;
     this.settingUtils.assignValue("passwordHistory", newHistory);
     this.settingUtils.save();
+  }
+
+  getSnippets(): CodeSnippet[] {
+    const value = this.settingUtils.get("codeSnippets");
+    if (!Array.isArray(value)) return [];
+    return value as CodeSnippet[];
+  }
+
+  async saveSnippets(list: CodeSnippet[]) {
+    // setAndSave persists without reloading (assignValue would reload the page)
+    await this.settingUtils.setAndSave("codeSnippets", list);
+  }
+
+  getOfficialExampleSnippets(): CodeSnippet[] {
+    // Official hardcoded examples. Each runs on the remote device via `request(apiPath, data)`.
+    return [
+      {
+        id: "example-kernel-version",
+        name: this.i18n.exampleNameKernelVersion,
+        code: `// Returns the remote SiYuan kernel version.
+return await request("/api/system/version", {});`,
+      },
+      {
+        id: "example-current-time",
+        name: this.i18n.exampleNameCurrentTime,
+        code: `// Returns the remote device's current server time.
+return await request("/api/system/currentTime", {});`,
+      },
+      {
+        id: "example-notebooks",
+        name: this.i18n.exampleNameNotebooks,
+        code: `// Lists all notebooks on the remote device.
+return await request("/api/notebook/lsNotebooks", {});`,
+      },
+      {
+        id: "example-total-blocks",
+        name: this.i18n.exampleNameTotalBlocks,
+        code: `// Counts all document blocks on the remote device via SQL.
+const res = await request("/api/query/sql", { stmt: "SELECT COUNT(*) AS total FROM blocks" });
+return res?.[0]?.total ?? res;`,
+      },
+      {
+        id: "example-recent-docs",
+        name: this.i18n.exampleNameRecentDocs,
+        code: `// Returns the 10 most recently updated documents on the remote device.
+// Keep the payload small (id + hpath only): GoEasy caps a message at ~5KB.
+return await request("/api/query/sql", {
+  stmt: "SELECT id, hpath FROM blocks WHERE type = 'd' ORDER BY updated DESC LIMIT 10"
+});`,
+      },
+    ];
+  }
+
+  async restoreOfficialExamples() {
+    const examples = this.getOfficialExampleSnippets();
+    const existing = this.getSnippets();
+    // Merge: keep user snippets, add any official example whose id isn't already present.
+    const existingIds = new Set(existing.map((s) => s.id));
+    const merged = [...existing, ...examples.filter((e) => !existingIds.has(e.id))];
+    await this.saveSnippets(merged);
+    showMessage(this.i18n.textExamplesRestored, 3000);
+  }
+
+  async seedOfficialExamplesIfFirstRun() {
+    // Seed the official examples only the very first time the user opens the feature,
+    // tracked by a persistent flag so deleting them does NOT re-trigger seeding.
+    const seeded = this.settingUtils.get("codeSnippetsSeeded");
+    if (seeded) return;
+    if (this.getSnippets().length === 0) {
+      await this.saveSnippets(this.getOfficialExampleSnippets());
+    }
+    await this.settingUtils.setAndSave("codeSnippetsSeeded", true);
   }
 
   showPasswordHistoryDialog() {
@@ -698,6 +942,316 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
 
     setTimeout(() => pwdInput1.focus(), 100);
   };
+
+  showManageSnippetsDialog = () => {
+    const dialog = new Dialog({
+      title: this.i18n.textManageSnippets,
+      content: `<div class="b3-dialog__content">
+        <div id="snippetListContainer" class="snippet-list"></div>
+      </div>
+      <div class="b3-dialog__action">
+        <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+        <button class="b3-button b3-button--outline" id="restoreExamplesBtn">${this.i18n.textRestoreExamples}</button><div class="fn__space"></div>
+        <button class="b3-button b3-button--text" id="addSnippetBtn">${this.i18n.textAddSnippet}</button>
+      </div>`,
+      width: this.isMobile ? "95vw" : "600px",
+    });
+
+    const renderList = () => {
+      const container = dialog.element.querySelector("#snippetListContainer");
+      if (!container) return;
+      const snippets = this.getSnippets();
+      if (snippets.length === 0) {
+        container.innerHTML = `<div class="snippet-manager-empty">${this.i18n.textNoSnippets}</div>`;
+        return;
+      }
+      container.innerHTML = snippets
+        .map(
+          (s) => `
+        <div class="snippet-row">
+          <span class="snippet-name">${this.escapeHtml(s.name)}</span>
+          <span class="snippet-actions">
+            <button class="b3-button b3-button--outline snippet-edit" data-id="${s.id}">${this.i18n.textEditSnippet}</button>
+            <button class="b3-button b3-button--cancel snippet-delete" data-id="${s.id}">${this.i18n.textDeleteSnippet}</button>
+          </span>
+        </div>`
+        )
+        .join("");
+
+      container.querySelectorAll(".snippet-edit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = (btn as HTMLElement).getAttribute("data-id");
+          const snippet = this.getSnippets().find((s) => s.id === id);
+          if (snippet) {
+            dialog.destroy();
+            this.showSnippetEditDialog(snippet, () => this.showManageSnippetsDialog());
+          }
+        });
+      });
+      container.querySelectorAll(".snippet-delete").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = (btn as HTMLElement).getAttribute("data-id");
+          if (!id) return;
+          const confirmed = await this.confirmDialog({
+            title: this.i18n.textDeleteSnippet,
+            message: this.i18n.textConfirmDeleteSnippet,
+          });
+          if (!confirmed) return;
+          const list = this.getSnippets().filter((s) => s.id !== id);
+          await this.saveSnippets(list);
+          renderList();
+        });
+      });
+    };
+
+    dialog.element
+      .querySelector(".b3-dialog__action .b3-button--cancel")
+      .addEventListener("click", () => dialog.destroy());
+    dialog.element
+      .querySelector("#restoreExamplesBtn")
+      .addEventListener("click", async () => {
+        await this.restoreOfficialExamples();
+        renderList();
+      });
+    dialog.element
+      .querySelector("#addSnippetBtn")
+      .addEventListener("click", () => {
+        dialog.destroy();
+        this.showSnippetEditDialog(null, () => this.showManageSnippetsDialog());
+      });
+
+    renderList();
+  };
+
+  showSnippetEditDialog = (
+    snippet: CodeSnippet | null,
+    onClosed?: () => void
+  ) => {
+    const isEdit = snippet !== null;
+    const dialog = new Dialog({
+      title: isEdit ? this.i18n.textEditSnippet : this.i18n.textAddSnippet,
+      content: `<div class="b3-dialog__content">
+        <div class="ft__breakword" style="margin-bottom: 8px;">
+          <div style="margin-bottom: 4px; opacity: 0.8;">${this.i18n.textSnippetName}</div>
+          <input class="b3-text-field fn__block" id="snippetNameInput" placeholder="${this.i18n.textSnippetNamePlaceholder}" value="${isEdit ? this.escapeHtml(snippet.name) : ""}" />
+        </div>
+        <div class="ft__breakword">
+          <div style="margin-bottom: 4px; opacity: 0.8;">${this.i18n.textSnippetCode}</div>
+          <textarea class="b3-text-field fn__block" id="snippetCodeInput" style="height: 240px; font-family: monospace;" placeholder="${this.i18n.textSnippetCodePlaceholder}">${isEdit ? this.escapeHtml(snippet.code) : ""}</textarea>
+        </div>
+      </div>
+      <div class="b3-dialog__action">
+        <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+        <button class="b3-button b3-button--text" id="saveSnippetBtn">${window.siyuan.languages.save}</button>
+      </div>`,
+      width: this.isMobile ? "95vw" : "640px",
+    });
+
+    const nameInput: HTMLInputElement = dialog.element.querySelector(
+      "#snippetNameInput"
+    );
+    const codeInput: HTMLTextAreaElement = dialog.element.querySelector(
+      "#snippetCodeInput"
+    );
+    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+
+    btnsElement[0].addEventListener("click", () => {
+      dialog.destroy();
+      if (onClosed) onClosed();
+    });
+
+    btnsElement[1].addEventListener("click", async () => {
+      const name = nameInput.value.trim();
+      const code = codeInput.value;
+      if (!name) {
+        showMessage(this.i18n.textSnippetNameEmpty, 5000, "error");
+        return;
+      }
+      const list = this.getSnippets();
+      if (isEdit) {
+        const idx = list.findIndex((s) => s.id === snippet.id);
+        if (idx >= 0) {
+          list[idx] = { id: snippet.id, name, code };
+        }
+      } else {
+        list.push({ id: crypto.randomUUID(), name, code });
+      }
+      await this.saveSnippets(list);
+      dialog.destroy();
+      if (onClosed) onClosed();
+    });
+
+    setTimeout(() => nameInput.focus(), 100);
+  };
+
+  showSnippetPickerDialog = (
+    deviceId: string,
+    onPicked: (deviceId: string, snippet: CodeSnippet) => void
+  ) => {
+    const snippets = this.getSnippets();
+    if (snippets.length === 0) {
+      showMessage(this.i18n.textNoSnippets, 5000, "error");
+      return;
+    }
+    const dialog = new Dialog({
+      title: this.i18n.textPickSnippet,
+      content: `<div class="b3-dialog__content">
+        <div class="snippet-list">
+          ${snippets
+            .map(
+              (s) => `
+            <button class="snippet-picker-item b3-button b3-button--outline" data-id="${s.id}" data-device-id="${this.escapeHtml(deviceId)}">
+              <span class="snippet-picker-name">${this.escapeHtml(s.name)}</span>
+              <span class="snippet-picker-preview">${this.escapeHtml(s.code)}</span>
+            </button>`
+            )
+            .join("")}
+        </div>
+      </div>
+      <div class="b3-dialog__action">
+        <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button>
+      </div>`,
+      width: this.isMobile ? "95vw" : "600px",
+    });
+
+    dialog.element
+      .querySelectorAll(".snippet-picker-item")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = (btn as HTMLElement).getAttribute("data-id");
+          const did = (btn as HTMLElement).getAttribute("data-device-id");
+          const snippet = this.getSnippets().find((s) => s.id === id);
+          dialog.destroy();
+          if (snippet && did) onPicked(did, snippet);
+        });
+      });
+    dialog.element
+      .querySelector(".b3-dialog__action .b3-button--cancel")
+      .addEventListener("click", () => dialog.destroy());
+  };
+
+  showSnippetResultDialog = (title: string, resultText: string) => {
+    const dialog = new Dialog({
+      title: title,
+      content: `<div class="b3-dialog__content">
+        <textarea class="b3-text-field fn__block" readonly style="height: 300px; font-family: monospace;">${this.escapeHtml(resultText)}</textarea>
+      </div>
+      <div class="b3-dialog__action">
+        <button class="b3-button b3-button--cancel">${this.i18n.textCopyResult}</button><div class="fn__space"></div>
+        <button class="b3-button b3-button--text">${window.siyuan.languages.close}</button>
+      </div>`,
+      width: this.isMobile ? "95vw" : "640px",
+    });
+    const btnsElement = dialog.element.querySelectorAll(".b3-button");
+    btnsElement[0].addEventListener("click", () => {
+      this.clipboardService.copyToClipboard(resultText);
+      showMessage(this.i18n.textCopied, 2000);
+    });
+    btnsElement[1].addEventListener("click", () => dialog.destroy());
+  };
+
+  confirmDialog = (args: {
+    title: string;
+    message: string;
+  }): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const dialog = new Dialog({
+        title: args.title,
+        content: `<div class="b3-dialog__content">
+          <div class="ft__breakword">${args.message}</div>
+        </div>
+        <div class="b3-dialog__action">
+          <button class="b3-button b3-button--cancel">${window.siyuan.languages.cancel}</button><div class="fn__space"></div>
+          <button class="b3-button b3-button--text" id="confirmDialogConfirmBtn">${window.siyuan.languages.confirm}</button>
+        </div>`,
+        width: this.isMobile ? "95vw" : "480px",
+      });
+      const btnsElement = dialog.element.querySelectorAll(".b3-button");
+      btnsElement[0].addEventListener("click", () => {
+        dialog.destroy();
+        resolve(false);
+      });
+      btnsElement[1].addEventListener("click", () => {
+        dialog.destroy();
+        resolve(true);
+      });
+    });
+  };
+
+  escapeHtml = (text: string): string => {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
+  runSnippetOnDevice(deviceId: string, snippet: CodeSnippet) {
+    const id = crypto.randomUUID();
+    const from = this.deviceService.getCurrentDeviceInfo();
+    showMessage(this.i18n.textSnippetRunning, 3000);
+    console.log(
+      `[snippet-run] request id=${id} localRunnerVersion=${SNIPPET_RUNNER_VERSION} snippet=${snippet.name}`
+    );
+
+    new Promise<{ result: any; runnerVersion: string | null }>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        if (this.pendingSnippetRuns.has(id)) {
+          this.pendingSnippetRuns.delete(id);
+          reject(Object.assign(new Error("timeout"), { runnerVersion: null }));
+        }
+      }, 30000);
+      this.pendingSnippetRuns.set(id, {
+        resolve,
+        reject,
+        timeoutId,
+      });
+      this.goEasyService.sendMessage(
+        deviceId +
+          "#runSnippet#" +
+          JSON.stringify({
+            id,
+            code: snippet.code,
+            from,
+            localRunnerVersion: SNIPPET_RUNNER_VERSION,
+          })
+      );
+    })
+      .then(({ result, runnerVersion }) => {
+        const text =
+          typeof result === "string" ? result : JSON.stringify(result, null, 2);
+        const versionTag = runnerVersion
+          ? ` (remote runner: ${runnerVersion})`
+          : "";
+        this.showSnippetResultDialog(
+          this.i18n.textSnippetResult + " — " + snippet.name + versionTag,
+          text
+        );
+      })
+      .catch((err) => {
+        const remoteVersion = err?.runnerVersion;
+        const isTimeout = err?.message === "timeout";
+        let msg;
+        if (isTimeout) {
+          msg = this.i18n.textSnippetTimeout;
+        } else {
+          msg =
+            this.i18n.textSnippetRunFail +
+            (err?.message ? ": " + err.message : "");
+        }
+        if (remoteVersion) {
+          msg += ` [remote runner: ${remoteVersion}`;
+          if (remoteVersion !== SNIPPET_RUNNER_VERSION) {
+            msg += ` ≠ local ${SNIPPET_RUNNER_VERSION} — remote needs plugin redeploy`;
+          }
+          msg += "]";
+        } else if (isTimeout) {
+          msg += ` [no response — remote may be offline, on a stale build, or a mobile WebView that rejects the snippet]`;
+        }
+        showMessage(msg, 12000, "error");
+      });
+  }
 
   async currentDeviceInList() {
     try {

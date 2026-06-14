@@ -1,5 +1,34 @@
 import { exitSiYuan } from "siyuan";
-import {performSync, setAccessAuthCode} from "../api";
+import { performSync, setAccessAuthCode, request } from "../api";
+
+/**
+ * Bumped whenever the snippet runner logic changes. Echoed back in every snippet
+ * run response so the requesting device can confirm the remote is running the
+ * expected code (and detect a stale/deployed mismatch, e.g. on mobile).
+ */
+export const SNIPPET_RUNNER_VERSION = "async-iife-1";
+
+/**
+ * Rewrite a snippet so its final expression becomes the return value, REPL-like.
+ * - If the snippet already contains a `return`, it is left untouched.
+ * - Otherwise the last top-level expression statement (after the final `;`) is
+ *   wrapped as `return (...)`.
+ * This lets users write `request(...)`, `await request(...)`, or
+ * `const x = ...; x` without an explicit `return`.
+ */
+export function transformSnippet(code: string): string {
+  if (/\breturn\b/.test(code)) return code;
+  const trimmed = code.replace(/\s+$/, "");
+  const lastSemicolon = trimmed.lastIndexOf(";");
+  if (lastSemicolon === -1) {
+    // single expression, no semicolons
+    return "return (" + trimmed + ")";
+  }
+  const head = trimmed.substring(0, lastSemicolon + 1);
+  const tail = trimmed.substring(lastSemicolon + 1).trim();
+  if (!tail) return head; // trailing semicolon, nothing to return
+  return head + "\nreturn (" + tail + ");";
+}
 
 export class DeviceService {
   private goEasyService: any;
@@ -62,6 +91,32 @@ export class DeviceService {
   async setCurrentDeviceAutoPassword(password: string) {
     console.log("try set auto password this me");
     await setAccessAuthCode(password);
+  }
+
+  /* responsor — runs an arbitrary JS snippet on this device and returns its value.
+     Implementation note: we deliberately do NOT use the AsyncFunction constructor
+     (`Object.getPrototypeOf(async function(){}).constructor`). On some mobile
+     WebViews that constructor is unavailable / returns the sync `Function`, which
+     makes `await` invalid and throws "await is only valid in async functions".
+     Instead we wrap the snippet in an async IIFE written as literal source
+     (`(async (...) => { ... })()`), so the async-ness is plain syntax that every
+     JS engine parses correctly. `request(apiPath, data)` calls the SiYuan kernel
+     API; `window` and `console` are also in scope. */
+  async runCodeOnCurrentDevice(code: string): Promise<any> {
+    const transformed = transformSnippet(code);
+    console.log(
+      `[snippet-runner v${SNIPPET_RUNNER_VERSION}] executing:\n${transformed}`
+    );
+    // eslint-disable-next-line no-new-func
+    const wrapper = new Function(
+      "request",
+      "window",
+      "console",
+      "return (async (request, window, console) => {\n" +
+        transformed +
+        "\n})(request, window, console);"
+    );
+    return await wrapper(request, window, console);
   }
 
   getCurrentDeviceInfo(): string {

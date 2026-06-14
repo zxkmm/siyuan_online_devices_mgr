@@ -69,6 +69,36 @@
   "textLockSuccess": "Locked successfully",
   "textLockFail": "Lock failed, most likely because the remote device has no access auth code set. Please use the 'Set Access Auth Code' feature first.",
 
+  "textManageSnippets": "Manage Code Snippets",
+  "textManageSnippetsDesc": "Maintain a table of named code snippets. You can add, edit and delete snippets here, then run any of them on a remote device from the device panel.",
+  "textManageSnippetsSettingHint": "Code snippets are managed from the dock panel's 'Manage Code Snippets' button.",
+  "textRunSnippet": "Run Snippet",
+  "textSnippetName": "Snippet Name",
+  "textSnippetNamePlaceholder": "e.g., Get kernel version",
+  "textSnippetNameEmpty": "Snippet name cannot be empty.",
+  "textSnippetCode": "Snippet Code (JavaScript)",
+  "textSnippetCodePlaceholder": "JavaScript. `request(apiPath, data)` calls the SiYuan kernel API, e.g.:\nreturn await request(\"/api/system/version\", {});",
+  "textAddSnippet": "Add Snippet",
+  "textEditSnippet": "Edit",
+  "textDeleteSnippet": "Delete",
+  "textNoSnippets": "No code snippets yet. Click 'Add Snippet' to create one.",
+  "textSnippetResult": "Snippet Result",
+  "textSnippetRunning": "Running snippet on the remote device...",
+  "textSnippetTimeout": "Timed out waiting for the remote device to run the snippet (it may be offline or the snippet took too long).",
+  "textSnippetRunFail": "Snippet run failed",
+  "textPickSnippet": "Pick a snippet to run",
+  "textConfirmDeleteSnippet": "Are you sure you want to delete this snippet?",
+  "textCopyResult": "Copy",
+  "textCopied": "Copied to clipboard",
+  "textRestoreExamples": "Restore Examples",
+  "textExamplesRestored": "Official examples restored",
+
+  "exampleNameKernelVersion": "[Example] Kernel Version",
+  "exampleNameCurrentTime": "[Example] Current Time",
+  "exampleNameNotebooks": "[Example] List Notebooks",
+  "exampleNameTotalBlocks": "[Example] Total Block Count",
+  "exampleNameRecentDocs": "[Example] Recently Updated Docs",
+
   "goeasyTokenMissing": "Please fill in the GoEasy Token first",
   "barkUrlMissing": "Please fill in the Bark API Baselink first",
 
@@ -76,6 +106,7 @@
 
 
   "beggingTitle": "🙏 Begging 🙏",
-  "beggingDesc": "This plugin is open source and free, so I need your encouragement.<br>If you like the features this plugin brings you, you can consider donating to help me with basic living expenses 🍚: <a href='https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704'>Donate</a>. (Donations won't unlock additional features)<br>If you're not financially comfortable, you can encourage me by giving a free ⭐ star to <a href='https://github.com/zxkmm/siyuan_online_devices_mgr'>my GitHub repository</a>.<br>If you or someone you know needs my skills, feel free to hire me anytime."
+  "beggingDesc": "This plugin is open source and free, so I need your encouragement.<br>If you like the features this plugin brings you, you can consider donating to help me with basic living expenses 🍚: <a href='https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704'>Donate</a>. (Donations won't unlock additional features)<br>If you're not financially comfortable, you can encourage me by giving a free ⭐ star to <a href='https://github.com/zxkmm/siyuan_online_devices_mgr'>my GitHub repository</a>.<br>If you or someone you know needs my skills, feel free to hire me anytime.",
+  "beggingInfoText": "<span style=\"color: red;\">(This message appears only with a very small probability, and will automatically disappear and never show again once I have collected enough stars)</span><br>🙏 Begging 🙏<br>This plugin is open source and free, so I need your encouragement.<br>If you like the features this plugin brings you, you can consider donating to help me with basic living expenses 🍚: <a href='https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704'>Donate</a>. (Donations won't unlock additional features)<br>If you're not financially comfortable, you can encourage me by giving a free ⭐ star to <a href='https://github.com/zxkmm/siyuan_online_devices_mgr'>my GitHub repository</a>.<br>If you or someone you know needs my skills, feel free to hire me anytime."
 
 }

@@ -93,6 +93,55 @@ export function getDockHTML(
         text-align: center;
         font-size: 14px;
       }
+
+      .snippet-manager-empty {
+        opacity: 0.6;
+        text-align: center;
+        padding: 16px;
+      }
+      .snippet-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .snippet-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--b3-theme-background-light);
+        border-radius: 4px;
+      }
+      .snippet-row .snippet-name {
+        flex: 1 1 auto;
+        word-break: break-all;
+        font-weight: bold;
+      }
+      .snippet-row .snippet-actions {
+        display: flex;
+        gap: 4px;
+        flex: 0 0 auto;
+      }
+      .snippet-picker-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 100%;
+        text-align: left;
+        padding: 8px;
+      }
+      .snippet-picker-item .snippet-picker-name {
+        font-weight: bold;
+      }
+      .snippet-picker-item .snippet-picker-preview {
+        opacity: 0.6;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 4em;
+        overflow: hidden;
+      }
     </style>
   `;
 
@@ -101,6 +150,7 @@ export function getDockHTML(
       <button id="refreshDeviceList" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconRefresh"></use></svg> ${_instance_.i18n.textRefresh}</button>
       <button id="sendBroadcast" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconGlobe"></use></svg> ${_instance_.i18n.textSendBroadcast}</button>
       <button id="sendBroadcastClipboard" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconPaste"></use></svg> ${_instance_.i18n.textSendBroadcastClipboard}</button>
+      <button id="manageSnippets" class="wide-button b3-button b3-button--outline fn__flex-center"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${_instance_.i18n.textManageSnippets}</button>
 
       <div class="device-list" id="onlineDeviceList">
         Loading...
