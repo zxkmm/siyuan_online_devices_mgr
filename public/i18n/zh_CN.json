@@ -102,5 +102,6 @@
   "disclaimerDeclineBtn": "拒绝",
   "disclaimerNotAcceptedTitle": "未接受申明",
   "disclaimerNotAcceptedDesc": "在您接受安全与法律申明之前，在线设备管理功能将保持禁用。您可以随时通过边栏面板或设置界面中的「查看安全与法律申明」按钮重新打开。",
-  "viewDisclaimerLabel": "查看安全与法律申明"
+  "viewDisclaimerLabel": "查看安全与法律申明",
+  "textMoreInfo": "更多信息"
 }

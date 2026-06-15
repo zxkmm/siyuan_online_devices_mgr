@@ -56,13 +56,10 @@ export class GoEasyService {
     });
   }
 
-  connect(deviceInfo: string) {
-    const deviceName = deviceInfo.split("^")[1];
-    const deviceUuid = deviceInfo.split("^")[0];
-
+  connect(deviceInfo: string, deviceData: any) {
     this.goeasy.connect({
       id: deviceInfo,
-      data: { deviceUuid, deviceName },
+      data: deviceData,
       onSuccess: function () {
         console.log("GoEasy connect successfully.");
       },

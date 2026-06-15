@@ -545,7 +545,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     // connect to GoEasy
     if (this.goEasyService) {
       const deviceInfo = this.deviceService.getCurrentDeviceInfo();
-      this.goEasyService.connect(deviceInfo);
+      const deviceData = this.deviceService.getCurrentDeviceData();
+      this.goEasyService.connect(deviceInfo, deviceData);
     }
   }
 
@@ -752,13 +753,32 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         const lockIcon = isLocking ? '<svg class="svg loading-icon"><use xlink:href="#iconRefresh"></use></svg>' : '<svg class="svg"><use xlink:href="#iconLock"></use></svg>';
         const lockClass = isLocking ? "device-action lock-siyuan locking" : "device-action lock-siyuan";
         
+        let dataFieldsHtml = "";
+        let deviceNameDisplay = "Unknown Device";
+        if (member.data && typeof member.data === "object") {
+          deviceNameDisplay = member.data.deviceName || deviceNameDisplay;
+          for (const [key, value] of Object.entries(member.data)) {
+            dataFieldsHtml += `<div style="width: 100%; word-break: break-all;">${key}: ${value}</div>`;
+          }
+        }
+        
+        const detailsHtml = `
+          <details style="width: 100%; margin-top: 4px;">
+            <summary style="cursor: pointer; opacity: 0.7; font-size: 0.9em;">${this.i18n.textMoreInfo}</summary>
+            <div style="margin-top: 4px; padding-left: 8px; font-size: 0.9em; opacity: 0.8; border-left: 2px solid var(--b3-theme-background-light);">
+              <div style="width: 100%; word-break: break-all; margin-bottom: 2px;">ID: ${member.id}</div>
+              ${dataFieldsHtml}
+            </div>
+          </details>
+        `;
+        
         deviceListHtml +=
           member.id == this.deviceService.getCurrentDeviceInfo() //local machine or not
             ? ` 
           <div class="device-item">
             <div class="device-info">
-              <div class="device-name">${this.i18n.textDeviceName}${member.data.deviceName}</div>
-              <div class="device-uuid">${this.i18n.textDeviceUuid}${member.data.deviceUuid}</div>
+              <div style="font-weight: bold; width: 100%; word-break: break-all;">${deviceNameDisplay}</div>
+              ${detailsHtml}
             </div>
             <div class="device-actions">
             <span class="device-action device-itsme b3-button b3-button--outline fn__flex-center" style="opacity: 0.8; pointer-events: none;"><svg class="svg"><use xlink:href="#iconTerminal"></use></svg> ${this.i18n.textLocalMachine}</span>
@@ -774,8 +794,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             : `
           <div class="device-item">
             <div class="device-info">
-              <div class="device-name">${this.i18n.textDeviceName}${member.data.deviceName}</div>
-              <div class="device-uuid">${this.i18n.textDeviceUuid}${member.data.deviceUuid}</div>
+              <div style="font-weight: bold; width: 100%; word-break: break-all;">${deviceNameDisplay}</div>
+              ${detailsHtml}
             </div>
             <div class="device-actions">
               <button class="${lockClass} b3-button b3-button--outline fn__flex-center" data-device-id="${member.id}">${lockIcon} ${this.i18n.textLock}</button>

@@ -33,10 +33,12 @@ export function transformSnippet(code: string): string {
 export class DeviceService {
   private goEasyService: any;
   private lockScreenCallback: () => void; // this got to be callback bc ONLY this base plugin class can call lockScreen(this.app) somehow.
+  private sessionId: string;
 
   constructor(goEasyService: any, lockScreenCallback: () => void) {
     this.goEasyService = goEasyService;
     this.lockScreenCallback = lockScreenCallback;
+    this.sessionId = Math.random().toString(36).substring(2, 6);
   }
 
   /* requestor */
@@ -120,9 +122,13 @@ export class DeviceService {
   }
 
   getCurrentDeviceInfo(): string {
-    const currentDeviceUuid = window.siyuan.config.system.id;
-    const currentDeviceName = window.siyuan.config.system.name;
-    return `${currentDeviceUuid}^${currentDeviceName}`;
+    return `${window.siyuan.config.system.id}^${this.sessionId}`;
+  }
+
+  getCurrentDeviceData(): { deviceUuid: string, deviceName: string, sessionId: string } {
+    const deviceUuid = window.siyuan.config.system.id;
+    const deviceName = window.siyuan.config.system.name;
+    return { deviceUuid, deviceName, sessionId: this.sessionId };
   }
 
   getDeviceDetails(): string {
