@@ -56,6 +56,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private clipboardService: ClipboardService;
   private pendingLocks: Map<string, any> = new Map();
   private pendingSnippetRuns: Map<string, PendingSnippetRun> = new Map();
+  private deviceNicknames: Record<string, string> = {};
 
   // customTab: () => IModel;
   private isMobile: boolean;
@@ -86,6 +87,15 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         "Error loading settings storage, probably empty config json:",
         error
       );
+    }
+
+    try {
+      const data = await this.loadData("deviceNicknames.json");
+      if (data) {
+        this.deviceNicknames = data;
+      }
+    } catch (e) {
+      console.error("Error loading device nicknames", e);
     }
   }
 
@@ -762,6 +772,11 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           }
         }
         
+        const nickname = this.deviceNicknames[member.id];
+        if (nickname) {
+          deviceNameDisplay = `${nickname} (${deviceNameDisplay})`;
+        }
+        
         const detailsHtml = `
           <details style="width: 100%; margin-top: 4px;">
             <summary style="cursor: pointer; opacity: 0.7; font-size: 0.9em;">${this.i18n.textMoreInfo}</summary>
@@ -777,7 +792,10 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             ? ` 
           <div class="device-item">
             <div class="device-info">
-              <div style="font-weight: bold; width: 100%; word-break: break-all;">${deviceNameDisplay}</div>
+              <div style="font-weight: bold; word-break: break-all; display: flex; align-items: center; gap: 8px;">
+                <span>${deviceNameDisplay}</span>
+                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
+              </div>
               ${detailsHtml}
             </div>
             <div class="device-actions">
@@ -794,7 +812,10 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             : `
           <div class="device-item">
             <div class="device-info">
-              <div style="font-weight: bold; width: 100%; word-break: break-all;">${deviceNameDisplay}</div>
+              <div style="font-weight: bold; word-break: break-all; display: flex; align-items: center; gap: 8px;">
+                <span>${deviceNameDisplay}</span>
+                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
+              </div>
               ${detailsHtml}
             </div>
             <div class="device-actions">
@@ -900,6 +921,8 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           ? "trigger-sync"
           : target.classList.contains("set-auto-password")
           ? "set-auto-password"
+          : target.classList.contains("set-nickname")
+          ? "set-nickname"
           : target.classList.contains("run-snippet")
           ? "run-snippet"
           : null;
@@ -964,6 +987,23 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           confirm: (password: string) => {
             this.savePasswordToHistory(deviceId, password);
             this.deviceService.setAutoPassword(deviceId, password);
+          },
+        });
+        break;
+      case "set-nickname":
+        this.inputDialog({
+          title: this.i18n.textSetNickname,
+          placeholder: this.i18n.textNicknamePlaceholder,
+          width: this.isMobile ? "95vw" : "50vw",
+          height: this.isMobile ? "95vw" : "30vw",
+          confirm: (text: string) => {
+            if (text.trim() === "") {
+              delete this.deviceNicknames[deviceId];
+            } else {
+              this.deviceNicknames[deviceId] = text.trim();
+            }
+            this.saveData("deviceNicknames.json", this.deviceNicknames);
+            this.updateOnlineDeviceList();
           },
         });
         break;

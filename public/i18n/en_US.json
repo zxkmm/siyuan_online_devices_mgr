@@ -103,5 +103,7 @@
   "disclaimerNotAcceptedTitle": "Disclaimer not accepted",
   "disclaimerNotAcceptedDesc": "The online device management feature stays disabled until you accept the disclaimer. You can re-open it at any time via the \"View Safety & Legal Disclaimer\" button in the dock panel or the settings panel.",
   "viewDisclaimerLabel": "View Safety & Legal Disclaimer",
-  "textMoreInfo": "More Info"
+  "textMoreInfo": "More Info",
+  "textSetNickname": "Set Nickname",
+  "textNicknamePlaceholder": "Enter nickname for this device, or leave blank to remove nickname."
 }

@@ -103,5 +103,7 @@
   "disclaimerNotAcceptedTitle": "未接受申明",
   "disclaimerNotAcceptedDesc": "在您接受安全与法律申明之前，在线设备管理功能将保持禁用。您可以随时通过边栏面板或设置界面中的「查看安全与法律申明」按钮重新打开。",
   "viewDisclaimerLabel": "查看安全与法律申明",
-  "textMoreInfo": "更多信息"
+  "textMoreInfo": "更多信息",
+  "textSetNickname": "设置设备别名",
+  "textNicknamePlaceholder": "输入该设备的别名。留空则会移除已有别名。"
 }
