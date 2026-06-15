@@ -772,7 +772,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           }
         }
         
-        const nickname = this.deviceNicknames[member.id];
+        const nickname = member.data && member.data.deviceUuid ? this.deviceNicknames[member.data.deviceUuid] : undefined;
         if (nickname) {
           deviceNameDisplay = `${nickname} (${deviceNameDisplay})`;
         }
@@ -794,7 +794,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             <div class="device-info">
               <div style="font-weight: bold; word-break: break-all; display: flex; align-items: center; gap: 8px;">
                 <span>${deviceNameDisplay}</span>
-                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
+                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" data-device-uuid="${member.data?.deviceUuid || ''}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
               </div>
               ${detailsHtml}
             </div>
@@ -814,7 +814,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
             <div class="device-info">
               <div style="font-weight: bold; word-break: break-all; display: flex; align-items: center; gap: 8px;">
                 <span>${deviceNameDisplay}</span>
-                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
+                <button class="device-action set-nickname b3-button b3-button--text b3-tooltips b3-tooltips__nw" aria-label="${this.i18n.textSetNickname}" data-device-id="${member.id}" data-device-uuid="${member.data?.deviceUuid || ''}" style="padding: 0; width: 20px; height: 20px; flex-shrink: 0; min-width: auto; background: transparent;"><svg class="svg"><use xlink:href="#iconEdit"></use></svg></button>
               </div>
               ${detailsHtml}
             </div>
@@ -909,6 +909,7 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         ) as HTMLElement;
         if (!target) return;
         const deviceId = target.getAttribute("data-device-id");
+        const deviceUuid = target.getAttribute("data-device-uuid");
         const action = target.classList.contains("lock-siyuan")
           ? "lock-siyuan"
           : target.classList.contains("exit-siyuan")
@@ -927,13 +928,13 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           ? "run-snippet"
           : null;
         if (deviceId && action) {
-          this.performDeviceAction(deviceId, action);
+          this.performDeviceAction(deviceId, action, deviceUuid);
         }
       });
     });
   }
 
-  performDeviceAction(deviceId: string, action: string) {
+  performDeviceAction(deviceId: string, action: string, deviceUuid?: string) {
     switch (action) {
       case "lock-siyuan":
         if (this.pendingLocks.has(deviceId)) return;
@@ -991,6 +992,10 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         });
         break;
       case "set-nickname":
+        if (!deviceUuid) {
+          console.error("No deviceUuid found for setting nickname.");
+          return;
+        }
         this.inputDialog({
           title: this.i18n.textSetNickname,
           placeholder: this.i18n.textNicknamePlaceholder,
@@ -998,9 +1003,9 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           height: this.isMobile ? "95vw" : "30vw",
           confirm: (text: string) => {
             if (text.trim() === "") {
-              delete this.deviceNicknames[deviceId];
+              delete this.deviceNicknames[deviceUuid];
             } else {
-              this.deviceNicknames[deviceId] = text.trim();
+              this.deviceNicknames[deviceUuid] = text.trim();
             }
             this.saveData("deviceNicknames.json", this.deviceNicknames);
             this.updateOnlineDeviceList();
