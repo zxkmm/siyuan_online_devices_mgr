@@ -109,5 +109,17 @@
   "exampleNameOpenCalculator": "[示例] 打开计算器",
   "blockWhenEditSwitch": "编辑时阻止其他设备编辑",
   "blockWhenEditSwitchDesc": "启用后，当本设备正在编辑时，其他在线设备会看到模糊遮罩层，阻止它们进行编辑操作。仅在超过一台设备在线时才发送信号，以避免不必要的 API 用量。",
-  "textRemoteEditing": "另一台设备正在编辑中，请稍等"
+  "textRemoteEditing": "另一台设备正在编辑中，请稍等",
+  "editDetectionMethod": "编辑检测方式",
+  "editDetectionMethodDesc": "检测本设备是否正在编辑的方式。更改立即生效，无需重启。「DOM 输入事件」（默认）监听编辑器中的 input 事件。「DOM 输入 + 键盘 + 输入法」额外添加 keydown 和 compositionend 事件，适合中日韩/输入法场景。「WebSocket 活动（ws-main）」在任何内核 WS 消息时触发——范围广，可能因同步/在线状态流量产生误报。「仅 WS 编辑事务」过滤 ws-main 中 cmd=transactions 的消息——更精确，但为实验性功能（建议打开浏览器控制台验证该事件确实在您编辑时触发）。「自定义事件总线事件」监听您在下方填写的事件名。「DOM 变更观察者」监测编辑器 DOM 变化——可能较嘈杂。",
+  "editDetectOptDomInput": "DOM 输入事件（默认）",
+  "editDetectOptDomInputKeyboard": "DOM 输入 + 键盘 + 输入法",
+  "editDetectOptWsMain": "WebSocket 活动（ws-main，范围广）",
+  "editDetectOptWsMainEdit": "仅 WS 编辑事务（ws-main，已过滤）",
+  "editDetectOptCustomEvents": "自定义事件总线事件",
+  "editDetectOptMutation": "DOM 变更观察者",
+  "editDetectionSilenceMs": "停止编辑延迟（毫秒）",
+  "editDetectionSilenceMsDesc": "最后一次编辑信号后，等待多少毫秒才向其他设备广播「停止编辑」。最低限制为 6000 毫秒（必须超过 5 秒重发节流时间）。适用于所有检测方式。默认：8000。",
+  "editDetectionCustomEvents": "自定义事件总线事件名",
+  "editDetectionCustomEventsDesc": "以逗号或换行分隔的思源事件总线事件名列表，在选择「自定义事件总线事件」方式时使用。列表中任意事件触发时均视为「正在编辑」并重置静默窗口。示例：ws-main。留空时退回到 DOM 输入事件方式。更改立即生效。"
 }

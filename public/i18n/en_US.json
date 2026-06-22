@@ -109,5 +109,17 @@
   "exampleNameOpenCalculator": "[Example] Open Calculator",
   "blockWhenEditSwitch": "Block Other Devices When Editing",
   "blockWhenEditSwitchDesc": "When enabled, other online devices will see a blur overlay that blocks editing while this device is actively writing. Signals are only sent when more than one device is online, to avoid unnecessary API usage.",
-  "textRemoteEditing": "Another device is currently editing — please wait"
+  "textRemoteEditing": "Another device is currently editing — please wait",
+  "editDetectionMethod": "Edit Detection Method",
+  "editDetectionMethodDesc": "How to detect that this device is actively editing. Changes apply immediately without restart. 'DOM Input' (default) watches for text input events in the editor. 'DOM Input + Keyboard + IME' adds keydown and compositionend events, useful for CJK/IME input. 'WebSocket Activity (ws-main)' fires on any kernel WebSocket message — broad, may produce false positives from sync/presence traffic. 'WS Edit Transactions Only' filters ws-main for cmd=transactions messages — more precise, but experimental (verify it fires for your edits by opening the browser console). 'Custom Event Bus Events' listens to the event names you specify below. 'DOM Mutation Observer' watches the editor DOM for changes — may be noisy.",
+  "editDetectOptDomInput": "DOM Input Event (default)",
+  "editDetectOptDomInputKeyboard": "DOM Input + Keyboard + IME",
+  "editDetectOptWsMain": "WebSocket Activity (ws-main, broad)",
+  "editDetectOptWsMainEdit": "WS Edit Transactions Only (ws-main, filtered)",
+  "editDetectOptCustomEvents": "Custom Event Bus Events",
+  "editDetectOptMutation": "DOM Mutation Observer",
+  "editDetectionSilenceMs": "Edit Stop Delay (ms)",
+  "editDetectionSilenceMsDesc": "Milliseconds of silence (no edit signals) before broadcasting 'stopped editing' to other devices. Minimum enforced at 6000 ms (must exceed the 5 s resend throttle). Applies to all detection methods. Default: 8000.",
+  "editDetectionCustomEvents": "Custom Event Bus Event Names",
+  "editDetectionCustomEventsDesc": "Comma- or newline-separated list of SiYuan event bus event names to listen to when 'Custom Event Bus Events' method is selected. Any event in the list triggers the 'editing' signal and resets the silence window. Example: ws-main. Falls back to DOM Input if left empty. Changes apply immediately."
 }

@@ -24,6 +24,14 @@ export async function performSync(upload: boolean = true) {
     return request(url, data);
 }
 
+export async function getSyncInfo(upload: boolean = true) {
+    let data = {
+        upload: upload
+    }
+    let url = '/api/sync/getSyncInfo';
+    return request(url, data);
+}
+
 
 // **************************************** Noteboook ****************************************
 

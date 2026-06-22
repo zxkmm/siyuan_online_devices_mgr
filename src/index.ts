@@ -15,6 +15,7 @@ import { DeviceService } from "./services/deviceService";
 import { SNIPPET_RUNNER_VERSION } from "./services/deviceService";
 import { NotificationService } from "./services/notificationService";
 import { ClipboardService } from "./services/clipboardService";
+import { getSyncInfo } from "./api";
 
 const STORAGE_NAME = "menu-config";
 const DOCK_TYPE = "dock_tab";
@@ -63,10 +64,19 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private localEditingState: boolean = false;
   private localEditStopTimer: any = null;
   private lastEditSignalSentAt: number = 0;
-  private editInputListener: ((e: Event) => void) | null = null;
+  private editDetectionCleanup: (() => void) | null = null;
   private readonly EDIT_SIGNAL_RESEND_THROTTLE_MS = 5000;
   private readonly EDIT_STOP_DEBOUNCE_MS = 8000;
   private readonly EDIT_REMOTE_SAFETY_TIMEOUT_MS = 30000;
+  // Post-edit sync propagation state (on the device that was editing)
+  private syncChainState: { pendingDevices: string[]; currentDeviceTimeout: any } | null = null;
+  private postEditSyncHandlers: {
+    onEnd: (e: CustomEvent) => void;
+    onFail: (e: CustomEvent) => void;
+  } | null = null;
+  // Interval that re-broadcasts editStart while the chain runs so that remote
+  // overlays (which auto-expire after EDIT_REMOTE_SAFETY_TIMEOUT_MS) stay alive.
+  private syncChainHeartbeatInterval: any = null;
 
   // customTab: () => IModel;
   private isMobile: boolean;
@@ -197,6 +207,57 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         callback: () => {
           let value = !this.settingUtils.get("blockWhenEdit");
           this.settingUtils.set("blockWhenEdit", value);
+        },
+      },
+    });
+
+    this.settingUtils.addItem({
+      key: "editDetectionMethod",
+      value: "dom-input",
+      type: "select",
+      options: {
+        "dom-input": this.i18n.editDetectOptDomInput,
+        "dom-input-keyboard": this.i18n.editDetectOptDomInputKeyboard,
+        "ws-main": this.i18n.editDetectOptWsMain,
+        "ws-main-edit": this.i18n.editDetectOptWsMainEdit,
+        "custom-events": this.i18n.editDetectOptCustomEvents,
+        "mutation": this.i18n.editDetectOptMutation,
+      },
+      title: this.i18n.editDetectionMethod,
+      description: this.i18n.editDetectionMethodDesc,
+      action: {
+        callback: () => {
+          this.settingUtils.take("editDetectionMethod", true);
+          if (this.settingUtils.get("mainSwitch")) {
+            this.setupEditDetection();
+          }
+        },
+      },
+    });
+
+    this.settingUtils.addItem({
+      key: "editDetectionSilenceMs",
+      value: 8000,
+      type: "number",
+      title: this.i18n.editDetectionSilenceMs,
+      description: this.i18n.editDetectionSilenceMsDesc,
+    });
+
+    this.settingUtils.addItem({
+      key: "editDetectionCustomEvents",
+      value: "",
+      type: "textarea",
+      title: this.i18n.editDetectionCustomEvents,
+      description: this.i18n.editDetectionCustomEventsDesc,
+      action: {
+        callback: () => {
+          this.settingUtils.take("editDetectionCustomEvents", true);
+          if (
+            this.settingUtils.get("editDetectionMethod") === "custom-events" &&
+            this.settingUtils.get("mainSwitch")
+          ) {
+            this.setupEditDetection();
+          }
         },
       },
     });
@@ -527,6 +588,58 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
       case "editStop":
         if (receivedDevice === "ALL" || receivedDevice === deviceInfo) {
           this.remoteEditStopped(receivedContent);
+        }
+        break;
+      case "triggerSyncChain":
+        // Sent by the editing device after its own sync completes.
+        // receivedContent = requestor's deviceId (for the syncDone reply).
+        if (receivedDevice === deviceInfo) {
+          const requestorId = receivedContent;
+          let chainSyncKickedOff = false;
+          const sendSyncDone = () => {
+            if (this.goEasyService) {
+              this.goEasyService.sendMessage(`${requestorId}#syncDone#${deviceInfo}`);
+            }
+          };
+          const onDone = (_e: CustomEvent) => {
+            if (!chainSyncKickedOff) return;
+            this.eventBus.off("sync-end", onDone);
+            this.eventBus.off("sync-fail", onFail);
+            clearTimeout(localSafetyTimeout);
+            sendSyncDone();
+          };
+          const onFail = (_e: CustomEvent) => {
+            if (!chainSyncKickedOff) return;
+            this.eventBus.off("sync-end", onDone);
+            this.eventBus.off("sync-fail", onFail);
+            clearTimeout(localSafetyTimeout);
+            sendSyncDone();
+          };
+          // Safety timeout slightly shorter than A's per-device timeout so A times
+          // out last and doesn't race with this device sending syncDone late.
+          const localSafetyTimeout = setTimeout(() => {
+            this.eventBus.off("sync-end", onDone);
+            this.eventBus.off("sync-fail", onFail);
+            sendSyncDone();
+          }, this.EDIT_REMOTE_SAFETY_TIMEOUT_MS - 5000);
+          // Register before calling sync so we don't miss an immediate fire.
+          this.eventBus.on("sync-end", onDone);
+          this.eventBus.on("sync-fail", onFail);
+          this.deviceService.syncCurrentDevice()
+            .then(() => { chainSyncKickedOff = true; })
+            .catch(() => {
+              clearTimeout(localSafetyTimeout);
+              this.eventBus.off("sync-end", onDone);
+              this.eventBus.off("sync-fail", onFail);
+              sendSyncDone();
+            });
+        }
+        break;
+      case "syncDone":
+        // Sent by a remote device after it finished syncing (in response to triggerSyncChain).
+        // receivedContent = the remote device's own deviceId.
+        if (receivedDevice === deviceInfo) {
+          this.onRemoteSyncDone(receivedContent);
         }
         break;
       default:
@@ -1220,11 +1333,12 @@ return {
   }
 
   async onunload() {
-    if (this.editInputListener) {
-      document.removeEventListener("input", this.editInputListener, true);
-      this.editInputListener = null;
+    if (this.editDetectionCleanup) {
+      this.editDetectionCleanup();
+      this.editDetectionCleanup = null;
     }
     if (this.localEditStopTimer) clearTimeout(this.localEditStopTimer);
+    this.cancelSyncChain();
     for (const timeoutId of this.editingDevices.values()) clearTimeout(timeoutId);
     this.editingDevices.clear();
     this.hideEditBlockOverlay();
@@ -1238,12 +1352,106 @@ return {
   // ── Edit-block feature ────────────────────────────────────────────────────
 
   private setupEditDetection() {
-    this.editInputListener = (e: Event) => {
+    if (this.editDetectionCleanup) {
+      this.editDetectionCleanup();
+      this.editDetectionCleanup = null;
+    }
+    const method = this.settingUtils.get("editDetectionMethod") || "dom-input";
+    switch (method) {
+      case "dom-input-keyboard":
+        this.setupDomInputKeyboardDetection();
+        break;
+      case "ws-main":
+        this.setupEventBusEditDetection(["ws-main"]);
+        break;
+      case "ws-main-edit":
+        this.setupWsMainEditDetection();
+        break;
+      case "custom-events":
+        this.setupCustomEventDetection();
+        break;
+      case "mutation":
+        this.setupMutationDetection();
+        break;
+      case "dom-input":
+      default:
+        this.setupDomInputDetection();
+    }
+  }
+
+  private setupDomInputDetection() {
+    const handler = (e: Event) => {
       const target = e.target as HTMLElement;
       if (!target.closest(".protyle-wysiwyg") && !target.closest(".protyle-title")) return;
       this.onLocalEditDetected();
     };
-    document.addEventListener("input", this.editInputListener, true);
+    document.addEventListener("input", handler, true);
+    this.editDetectionCleanup = () => document.removeEventListener("input", handler, true);
+  }
+
+  private setupDomInputKeyboardDetection() {
+    const fn = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".protyle-wysiwyg") && !target.closest(".protyle-title")) return;
+      this.onLocalEditDetected();
+    };
+    const evts = ["input", "keydown", "compositionend"] as const;
+    for (const evt of evts) document.addEventListener(evt, fn, true);
+    this.editDetectionCleanup = () => {
+      for (const evt of evts) document.removeEventListener(evt, fn, true);
+    };
+  }
+
+  private setupEventBusEditDetection(events: string[]) {
+    const handler = (_e: CustomEvent) => this.onLocalEditDetected();
+    for (const evt of events) (this.eventBus as any).on(evt, handler);
+    this.editDetectionCleanup = () => {
+      for (const evt of events) (this.eventBus as any).off(evt, handler);
+    };
+  }
+
+  private setupWsMainEditDetection() {
+    const handler = (e: CustomEvent) => {
+      if ((e.detail as any)?.cmd === "transactions") {
+        this.onLocalEditDetected();
+      }
+    };
+    (this.eventBus as any).on("ws-main", handler);
+    this.editDetectionCleanup = () => (this.eventBus as any).off("ws-main", handler);
+  }
+
+  private setupCustomEventDetection() {
+    const raw: string = this.settingUtils.get("editDetectionCustomEvents") || "";
+    const names = raw.split(/[\n,]/).map((s: string) => s.trim()).filter(Boolean);
+    if (names.length === 0) {
+      this.setupDomInputDetection();
+      return;
+    }
+    this.setupEventBusEditDetection(names);
+  }
+
+  private setupMutationDetection() {
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        const node = m.target;
+        const el = node.nodeType === Node.TEXT_NODE
+          ? (node as Text).parentElement
+          : (node as HTMLElement);
+        if (el?.closest(".protyle-wysiwyg")) {
+          this.onLocalEditDetected();
+          return;
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    this.editDetectionCleanup = () => observer.disconnect();
+  }
+
+  private getEditSilenceMs(): number {
+    const raw = this.settingUtils.get("editDetectionSilenceMs");
+    const val = parseInt(String(raw));
+    const floor = this.EDIT_SIGNAL_RESEND_THROTTLE_MS + 1000;
+    return isNaN(val) || val < floor ? this.EDIT_STOP_DEBOUNCE_MS : val;
   }
 
   private onLocalEditDetected() {
@@ -1254,7 +1462,7 @@ return {
     if (this.localEditStopTimer) clearTimeout(this.localEditStopTimer);
     this.localEditStopTimer = setTimeout(
       () => this.onLocalEditStopped(),
-      this.EDIT_STOP_DEBOUNCE_MS
+      this.getEditSilenceMs()
     );
 
     const now = Date.now();
@@ -1262,6 +1470,7 @@ return {
       !this.localEditingState ||
       now - this.lastEditSignalSentAt > this.EDIT_SIGNAL_RESEND_THROTTLE_MS
     ) {
+      if (!this.localEditingState) console.log("[TYPING DETECT] started typing");
       this.localEditingState = true;
       this.lastEditSignalSentAt = now;
       this.goEasyService.sendMessage(
@@ -1273,12 +1482,146 @@ return {
   private onLocalEditStopped() {
     this.localEditStopTimer = null;
     if (!this.localEditingState) return;
+    console.log("[TYPING DETECT] end typing");
     this.localEditingState = false;
+
+    // Cancel any sync chain left over from a previous edit cycle.
+    this.cancelSyncChain();
+
+    if (!this.goEasyService) return;
+
+    // Trigger a local sync, then propagate to each remote device one by one
+    // before sending editStop.  This ensures other devices download A's changes
+    // sequentially, which avoids re-upload races on the shared cloud storage.
+    this.startPostEditSyncChain();
+  }
+
+  private sendEditStop() {
+    this.stopSyncChainHeartbeat();
     if (this.goEasyService) {
       this.goEasyService.sendMessage(
         `ALL#editStop#${this.deviceService.getCurrentDeviceInfo()}`
       );
     }
+  }
+
+  private cancelSyncChain() {
+    if (this.syncChainState?.currentDeviceTimeout) {
+      clearTimeout(this.syncChainState.currentDeviceTimeout);
+    }
+    this.syncChainState = null;
+    this.stopSyncChainHeartbeat();
+    if (this.postEditSyncHandlers) {
+      this.eventBus.off("sync-end", this.postEditSyncHandlers.onEnd);
+      this.eventBus.off("sync-fail", this.postEditSyncHandlers.onFail);
+      this.postEditSyncHandlers = null;
+    }
+  }
+
+  // Periodically re-sends editStart while the sync chain runs so that remote
+  // overlay timeouts (EDIT_REMOTE_SAFETY_TIMEOUT_MS) do not expire mid-chain.
+  private startSyncChainHeartbeat() {
+    if (this.syncChainHeartbeatInterval) return;
+    const myId = this.deviceService.getCurrentDeviceInfo();
+    this.syncChainHeartbeatInterval = setInterval(() => {
+      if (!this.goEasyService || (!this.syncChainState && !this.postEditSyncHandlers)) {
+        this.stopSyncChainHeartbeat();
+        return;
+      }
+      this.goEasyService.sendMessage(`ALL#editStart#${myId}`);
+    }, this.EDIT_SIGNAL_RESEND_THROTTLE_MS);
+  }
+
+  private stopSyncChainHeartbeat() {
+    if (this.syncChainHeartbeatInterval) {
+      clearInterval(this.syncChainHeartbeatInterval);
+      this.syncChainHeartbeatInterval = null;
+    }
+  }
+
+  private startPostEditSyncChain() {
+    const myId = this.deviceService.getCurrentDeviceInfo();
+    // Guard against stale sync-end events from concurrent auto-syncs that were
+    // already in flight before we called performSync.  Since performSync resolves
+    // on kickoff (not completion), setting this flag in .then() is guaranteed to
+    // happen well before the real sync-end fires (sync does actual I/O first).
+    let syncKickedOff = false;
+
+    const onEnd = (_e: CustomEvent) => {
+      if (!syncKickedOff) return;
+      this.eventBus.off("sync-end", onEnd);
+      this.eventBus.off("sync-fail", onFail);
+      this.postEditSyncHandlers = null;
+
+      // Collect other online devices at the moment our sync finishes.
+      const otherDevices = Array.from(this.onlineDeviceData.keys()).filter(
+        (id) => id !== myId
+      );
+      if (otherDevices.length === 0) {
+        this.sendEditStop();
+        return;
+      }
+      this.syncChainState = { pendingDevices: otherDevices, currentDeviceTimeout: null };
+      this.triggerNextSyncInChain();
+    };
+
+    const onFail = (_e: CustomEvent) => {
+      if (!syncKickedOff) return;
+      this.eventBus.off("sync-end", onEnd);
+      this.eventBus.off("sync-fail", onFail);
+      this.postEditSyncHandlers = null;
+      this.cancelSyncChain();
+      // Local sync failed — still unblock everyone so they aren't stuck forever.
+      this.sendEditStop();
+    };
+
+    // Register before calling sync so we can't miss an immediate event.
+    this.postEditSyncHandlers = { onEnd, onFail };
+    this.eventBus.on("sync-end", onEnd);
+    this.eventBus.on("sync-fail", onFail);
+
+    // Heartbeat keeps remote overlays alive while we wait for local + chain syncs.
+    this.startSyncChainHeartbeat();
+
+    this.deviceService.syncCurrentDevice()
+      .then(() => { syncKickedOff = true; })
+      .catch((_err) => {
+        // performSync API call itself threw — treat as a sync failure.
+        syncKickedOff = true;
+        onFail(null as any);
+      });
+  }
+
+  private triggerNextSyncInChain() {
+    if (!this.syncChainState || this.syncChainState.pendingDevices.length === 0) {
+      this.syncChainState = null;
+      this.sendEditStop();
+      return;
+    }
+
+    const nextDevice = this.syncChainState.pendingDevices[0];
+    const myId = this.deviceService.getCurrentDeviceInfo();
+
+    // Safety timeout: if the device never replies (offline, stuck), advance anyway.
+    // This is intentionally longer than the remote device's own local timeout
+    // (EDIT_REMOTE_SAFETY_TIMEOUT_MS - 5000) so replies arrive before we give up.
+    this.syncChainState.currentDeviceTimeout = setTimeout(() => {
+      this.onRemoteSyncDone(nextDevice);
+    }, this.EDIT_REMOTE_SAFETY_TIMEOUT_MS);
+
+    this.goEasyService.sendMessage(`${nextDevice}#triggerSyncChain#${myId}`);
+  }
+
+  private onRemoteSyncDone(deviceId: string) {
+    if (!this.syncChainState) return;
+    if (this.syncChainState.currentDeviceTimeout) {
+      clearTimeout(this.syncChainState.currentDeviceTimeout);
+      this.syncChainState.currentDeviceTimeout = null;
+    }
+    this.syncChainState.pendingDevices = this.syncChainState.pendingDevices.filter(
+      (d) => d !== deviceId
+    );
+    this.triggerNextSyncInChain();
   }
 
   private remoteEditStarted(deviceId: string) {
