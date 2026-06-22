@@ -105,5 +105,9 @@
   "viewDisclaimerLabel": "查看安全与法律申明",
   "textMoreInfo": "更多信息",
   "textSetNickname": "设置设备别名",
-  "textNicknamePlaceholder": "输入该设备的别名。留空则会移除已有别名。"
+  "textNicknamePlaceholder": "输入该设备的别名。留空则会移除已有别名。",
+  "exampleNameOpenCalculator": "[示例] 打开计算器",
+  "blockWhenEditSwitch": "编辑时阻止其他设备编辑",
+  "blockWhenEditSwitchDesc": "启用后，当本设备正在编辑时，其他在线设备会看到模糊遮罩层，阻止它们进行编辑操作。仅在超过一台设备在线时才发送信号，以避免不必要的 API 用量。",
+  "textRemoteEditing": "另一台设备正在编辑中，请稍等"
 }

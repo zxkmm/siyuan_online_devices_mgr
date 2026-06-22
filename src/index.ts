@@ -57,6 +57,16 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private pendingLocks: Map<string, any> = new Map();
   private pendingSnippetRuns: Map<string, PendingSnippetRun> = new Map();
   private deviceNicknames: Record<string, string> = {};
+  private onlineDeviceCount: number = 0;
+  private onlineDeviceData: Map<string, any> = new Map();
+  private editingDevices: Map<string, any> = new Map(); // remoteDeviceId → safety timeoutId
+  private localEditingState: boolean = false;
+  private localEditStopTimer: any = null;
+  private lastEditSignalSentAt: number = 0;
+  private editInputListener: ((e: Event) => void) | null = null;
+  private readonly EDIT_SIGNAL_RESEND_THROTTLE_MS = 5000;
+  private readonly EDIT_STOP_DEBOUNCE_MS = 8000;
+  private readonly EDIT_REMOTE_SAFETY_TIMEOUT_MS = 30000;
 
   // customTab: () => IModel;
   private isMobile: boolean;
@@ -173,6 +183,20 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
         callback: () => {
           let value = !this.settingUtils.get("goeasySwitch");
           this.settingUtils.set("goeasySwitch", value);
+        },
+      },
+    });
+
+    this.settingUtils.addItem({
+      key: "blockWhenEdit",
+      value: true,
+      type: "checkbox",
+      title: this.i18n.blockWhenEditSwitch,
+      description: this.i18n.blockWhenEditSwitchDesc,
+      action: {
+        callback: () => {
+          let value = !this.settingUtils.get("blockWhenEdit");
+          this.settingUtils.set("blockWhenEdit", value);
         },
       },
     });
@@ -491,6 +515,20 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
           console.error("Failed to handle snippetResult message:", e);
         }
         break;
+      case "editStart":
+        if (
+          (receivedDevice === "ALL" || receivedDevice === deviceInfo) &&
+          receivedContent !== deviceInfo &&
+          this.settingUtils.get("blockWhenEdit")
+        ) {
+          this.remoteEditStarted(receivedContent);
+        }
+        break;
+      case "editStop":
+        if (receivedDevice === "ALL" || receivedDevice === deviceInfo) {
+          this.remoteEditStopped(receivedContent);
+        }
+        break;
       default:
         console.log("Unknown command:", receivedCommand);
     }
@@ -607,9 +645,21 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
   private maybeInitMainFeature() {
     if (this.settingUtils.get("mainSwitch")) {
       this.initializeServices();
+      this.setupEditDetection();
 
       if (this.goEasyService) {
-        this.goEasyService.fetchOnlineDevices(() => {});
+        // Seed onlineDeviceCount immediately so the edit-block feature works
+        // even before the dock panel has rendered (it also stays current via
+        // presence events, but those only fire on join/leave, not on init).
+        this.goEasyService.fetchOnlineDevices((response: any) => {
+          if (response?.content?.members) {
+            this.onlineDeviceCount = response.content.members.length;
+            this.onlineDeviceData.clear();
+            response.content.members.forEach((m: any) => {
+              if (m.data) this.onlineDeviceData.set(m.id, m.data);
+            });
+          }
+        });
 
         this.addDock({
           config: {
@@ -747,6 +797,19 @@ export default class SiyuanOnlineDeviceManager extends Plugin {
     this.goEasyService.fetchOnlineDevices((response) => {
       let deviceListHtml = "";
       const onlineDeviceIds = response.content.members.map(m => m.id);
+
+      // Track count and per-device data for the edit-block feature
+      this.onlineDeviceCount = response.content.members.length;
+      this.onlineDeviceData.clear();
+      response.content.members.forEach(m => {
+        if (m.data) this.onlineDeviceData.set(m.id, m.data);
+      });
+      // Remove overlay for devices that are no longer online
+      for (const deviceId of Array.from(this.editingDevices.keys())) {
+        if (!onlineDeviceIds.includes(deviceId)) {
+          this.remoteEditStopped(deviceId);
+        }
+      }
 
       // Check for success of pending locks
       for (const [deviceId, timeoutId] of this.pendingLocks.entries()) {
@@ -1157,12 +1220,126 @@ return {
   }
 
   async onunload() {
+    if (this.editInputListener) {
+      document.removeEventListener("input", this.editInputListener, true);
+      this.editInputListener = null;
+    }
+    if (this.localEditStopTimer) clearTimeout(this.localEditStopTimer);
+    for (const timeoutId of this.editingDevices.values()) clearTimeout(timeoutId);
+    this.editingDevices.clear();
+    this.hideEditBlockOverlay();
     if (this.goEasyService) {
       this.goEasyService.disconnect();
     }
   }
 
   uninstall() {}
+
+  // ── Edit-block feature ────────────────────────────────────────────────────
+
+  private setupEditDetection() {
+    this.editInputListener = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".protyle-wysiwyg") && !target.closest(".protyle-title")) return;
+      this.onLocalEditDetected();
+    };
+    document.addEventListener("input", this.editInputListener, true);
+  }
+
+  private onLocalEditDetected() {
+    if (!this.goEasyService) return;
+    if (!this.settingUtils.get("blockWhenEdit")) return;
+    if (this.onlineDeviceCount <= 1) return;
+
+    if (this.localEditStopTimer) clearTimeout(this.localEditStopTimer);
+    this.localEditStopTimer = setTimeout(
+      () => this.onLocalEditStopped(),
+      this.EDIT_STOP_DEBOUNCE_MS
+    );
+
+    const now = Date.now();
+    if (
+      !this.localEditingState ||
+      now - this.lastEditSignalSentAt > this.EDIT_SIGNAL_RESEND_THROTTLE_MS
+    ) {
+      this.localEditingState = true;
+      this.lastEditSignalSentAt = now;
+      this.goEasyService.sendMessage(
+        `ALL#editStart#${this.deviceService.getCurrentDeviceInfo()}`
+      );
+    }
+  }
+
+  private onLocalEditStopped() {
+    this.localEditStopTimer = null;
+    if (!this.localEditingState) return;
+    this.localEditingState = false;
+    if (this.goEasyService) {
+      this.goEasyService.sendMessage(
+        `ALL#editStop#${this.deviceService.getCurrentDeviceInfo()}`
+      );
+    }
+  }
+
+  private remoteEditStarted(deviceId: string) {
+    // Reset the per-device safety timeout each time we get a fresh editStart
+    const existing = this.editingDevices.get(deviceId);
+    if (existing) clearTimeout(existing);
+    const timeoutId = setTimeout(
+      () => this.remoteEditStopped(deviceId),
+      this.EDIT_REMOTE_SAFETY_TIMEOUT_MS
+    );
+    this.editingDevices.set(deviceId, timeoutId);
+    this.showEditBlockOverlay(Array.from(this.editingDevices.keys()));
+  }
+
+  private remoteEditStopped(deviceId: string) {
+    const existing = this.editingDevices.get(deviceId);
+    if (existing) clearTimeout(existing);
+    this.editingDevices.delete(deviceId);
+    if (this.editingDevices.size === 0) {
+      this.hideEditBlockOverlay();
+    } else {
+      this.showEditBlockOverlay(Array.from(this.editingDevices.keys()));
+    }
+  }
+
+  private getDeviceDisplayName(deviceId: string): string {
+    const uuid = deviceId.split("^")[0];
+    const data = this.onlineDeviceData.get(deviceId);
+    const nickname = this.deviceNicknames[uuid];
+    const deviceName = data?.deviceName ?? "Unknown Device";
+    return nickname ? `${nickname} (${deviceName})` : deviceName;
+  }
+
+  private showEditBlockOverlay(deviceIds: string[]) {
+    let overlay = document.getElementById("siyuan-edit-block-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "siyuan-edit-block-overlay";
+      document.body.appendChild(overlay);
+    }
+    const names = deviceIds.map(id => this.getDeviceDisplayName(id)).join(", ");
+    overlay.style.cssText =
+      "position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;" +
+      "backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);" +
+      "background:rgba(0,0,0,0.25);display:flex;align-items:center;" +
+      "justify-content:center;pointer-events:all;cursor:not-allowed;";
+    overlay.innerHTML =
+      `<div style="background:var(--b3-theme-background,#fff);` +
+      `border:1px solid var(--b3-theme-background-light,#ddd);` +
+      `border-radius:8px;padding:20px 28px;text-align:center;` +
+      `box-shadow:0 4px 24px rgba(0,0,0,0.18);pointer-events:none;max-width:360px;">` +
+      `<div style="font-weight:bold;font-size:16px;margin-bottom:6px;">` +
+      `${this.i18n.textRemoteEditing}</div>` +
+      `<div style="opacity:0.7;font-size:13px;">${this.escapeHtml(names)}</div>` +
+      `</div>`;
+  }
+
+  private hideEditBlockOverlay() {
+    const overlay = document.getElementById("siyuan-edit-block-overlay");
+    if (overlay) overlay.remove();
+  }
 
   passwordDoubleCheckDialog = (args: {
     confirm?: (password: string) => void;

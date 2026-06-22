@@ -105,5 +105,9 @@
   "viewDisclaimerLabel": "View Safety & Legal Disclaimer",
   "textMoreInfo": "More Info",
   "textSetNickname": "Set Nickname",
-  "textNicknamePlaceholder": "Enter nickname for this device, or leave blank to remove nickname."
+  "textNicknamePlaceholder": "Enter nickname for this device, or leave blank to remove nickname.",
+  "exampleNameOpenCalculator": "[Example] Open Calculator",
+  "blockWhenEditSwitch": "Block Other Devices When Editing",
+  "blockWhenEditSwitchDesc": "When enabled, other online devices will see a blur overlay that blocks editing while this device is actively writing. Signals are only sent when more than one device is online, to avoid unnecessary API usage.",
+  "textRemoteEditing": "Another device is currently editing — please wait"
 }
