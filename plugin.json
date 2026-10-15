@@ -2,7 +2,7 @@
   "name": "siyuan_online_devices_mgr",
   "author": "zxkmm",
   "url": "https://github.com/zxkmm/siyuan_online_devices_mgr",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "minAppVersion": "3.0.12",
   "backends": ["windows", "linux", "darwin", "ios", "android", "docker"],
   "frontends": [
@@ -21,11 +21,12 @@
     "zh_CN": "公网远程管理当前实时在线的设备，远程锁定，远程退出，远程发送消息，远程发送剪贴板，新设备上线手机通知"
   },
   "readme": {
+    "default": "README.md",
     "en_US": "README.md",
     "zh_CN": "README_zh_CN.md"
   },
   "funding": {
-    "custom": ["https://github.com/zxkmm"]
+    "custom": ["https://pipe.b3log.org/blogs/zxkmm/articles/2025/02/08/1738993480704"]
   },
   "keywords": [
     "zxkmm",
